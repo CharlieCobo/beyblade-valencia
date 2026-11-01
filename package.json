@@ -36,11 +36,8 @@
     "oxlint": "^1.89.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.5",
-    "vitest": "^5.0.5"
-  },
-  "msw": {
-    "workerDirectory": [
-      "public"
-    ]
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.0.5",
+    "workbox-window": "^7.4.1"
   }
 }

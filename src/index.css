@@ -4,7 +4,7 @@
   --bg: #ffffff;
   --fg: #1a1a1a;
   --card: #f4f4f5;
-  --accent: #e4572e;
+  --accent: #dd6e2f;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -50,4 +50,40 @@ body {
   padding: 0.15rem 0.6rem;
   font-size: 0.8rem;
   text-transform: uppercase;
+}
+
+.update-prompt {
+  position: fixed;
+  inset: auto 1rem 1rem 1rem;
+  max-width: 420px;
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--card);
+  color: var(--fg);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.25);
+}
+
+.update-prompt__actions { display: flex; gap: 0.5rem; }
+
+.button {
+  font: inherit;
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.button--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
