@@ -12,7 +12,8 @@
     "typecheck": "tsc -b",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "openspec": "openspec"
   },
   "dependencies": {
     "react": "^19.3.1",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
+    "@fission-ai/openspec": "^1.16.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

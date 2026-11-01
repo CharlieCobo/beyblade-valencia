@@ -1,0 +1,40 @@
+schema: spec-driven
+
+context: |
+  Language: es
+  All artifacts must be written in es.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Proyecto: Beyblade Valencia (SPA de frontend, sin backend propio todavía).
+  Stack: React 19, Vite 8, TypeScript 7, Vitest 5, Testing Library, MSW 3, Faker, oxlint.
+
+  Arquitectura por features (ver README.md):
+  - Cada feature vive en src/features/<feature>/ con api/, components/, hooks/,
+    mocks/, types/ e index.ts como única API pública.
+  - Una feature no importa de otra salvo por su index.ts; src/shared/ no importa de features/.
+  - Alias de importación @/ -> src/.
+  - Las llamadas HTTP usan httpGet/apiUrl de src/shared/api/httpClient.ts.
+
+  Mocks y tests:
+  - Cada entidad tiene una factory buildX(overrides) con Faker en features/<feature>/mocks/.
+  - Cada endpoint tiene un handler de MSW en features/<feature>/mocks/ registrado en src/mocks/handlers.ts.
+  - Tests colocados junto al código (*.test.ts[x]); se renderiza con renderWithProviders de @/test/test-utils.
+  - MSW falla ante peticiones no mockeadas; los casos específicos usan server.use(...).
+  - Hay que cubrir los estados de carga, vacío, error y éxito de cada vista que pide datos.
+
+rules:
+  tasks:
+    - Incluir tareas para la factory de Faker, los handlers de MSW y los tests de cada endpoint o componente nuevo.
+    - Terminar con una tarea de verificación con npm run lint, npm run typecheck y npm run test:run.
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing

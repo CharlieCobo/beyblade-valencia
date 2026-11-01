@@ -82,3 +82,21 @@ URL: https://charliecobo.github.io/beyblade-valencia/
 
 Requisito (una sola vez): *Settings → Pages → Build and deployment → Source: GitHub Actions*.
 Para retirar la demo, borra el workflow y desactiva Pages.
+
+## Nuevas features con OpenSpec
+
+El proyecto usa [OpenSpec](https://github.com/Fission-AI/OpenSpec) (spec-driven development) integrado con Claude Code.
+Las specs viven en `openspec/specs/`, los cambios en curso en `openspec/changes/` y el contexto del
+proyecto (stack, arquitectura, convenciones de mocks y tests) en `openspec/config.yaml`.
+
+Flujo en Claude Code:
+
+1. `/opsx:explore` — (opcional) explorar la idea antes de proponer.
+2. `/opsx:propose "descripción de la feature"` — genera `proposal.md`, specs delta, `design.md` y `tasks.md`.
+3. Revisar y ajustar la propuesta (`/opsx:update` si hace falta).
+4. `/opsx:apply` — implementa las tareas.
+5. `/opsx:archive` — archiva el cambio y actualiza las specs principales.
+
+CLI: `npm run openspec -- list`, `npm run openspec -- view`, `npm run openspec -- validate --all`.
+Los comandos de Claude invocan `openspec` directamente, así que conviene tenerlo global:
+`npm i -g @fission-ai/openspec`.
