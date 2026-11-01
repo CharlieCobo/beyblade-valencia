@@ -8,6 +8,7 @@ React 19 + Vite + TypeScript, con Vitest y Testing Library para tests, y MSW + F
 | ----------------------- | ---------------------------------------------------- |
 | `npm run dev`           | Servidor de desarrollo (con MSW activado por defecto) |
 | `npm run build`         | Type-check + build de producción                     |
+| `npm run build:demo`    | Build de demo con MSW activo (GitHub Pages)          |
 | `npm run preview`       | Sirve el build                                       |
 | `npm run lint`          | Lint con oxlint                                      |
 | `npm run typecheck`     | Sólo comprobación de tipos                           |
@@ -68,3 +69,16 @@ src/
 2. Añade su factory y sus handlers en `mocks/`.
 3. Registra los handlers en `src/mocks/handlers.ts`.
 4. Exporta lo necesario desde `index.ts`.
+
+## Demo en GitHub Pages
+
+El workflow `.github/workflows/deploy-demo.yml` publica en cada push a `master` (o manualmente
+desde *Actions → Run workflow*) un build con `--mode demo`:
+
+- `.env.demo` activa MSW, así que la API se sirve desde el navegador con datos de Faker.
+- `base` es `/beyblade-valencia/` y el service worker se registra desde esa ruta.
+
+URL: https://charliecobo.github.io/beyblade-valencia/
+
+Requisito (una sola vez): *Settings → Pages → Build and deployment → Source: GitHub Actions*.
+Para retirar la demo, borra el workflow y desactiva Pages.

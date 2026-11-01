@@ -4,7 +4,9 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  // En GitHub Pages la app se sirve desde /beyblade-valencia/
+  base: mode === 'demo' ? '/beyblade-valencia/' : '/',
   plugins: [react()],
   resolve: {
     alias: {
@@ -22,4 +24,4 @@ export default defineConfig({
       exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/mocks/**', 'src/main.tsx'],
     },
   },
-})
+}))
