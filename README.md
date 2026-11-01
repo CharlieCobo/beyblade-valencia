@@ -80,8 +80,9 @@ desde *Actions → Run workflow*) un build con `--mode demo`:
 
 URL: https://charliecobo.github.io/beyblade-valencia/
 
-Requisito (una sola vez): *Settings → Pages → Build and deployment → Source: GitHub Actions*.
-Para retirar la demo, borra el workflow y desactiva Pages.
+El workflow publica `dist/` en la rama `gh-pages`. Si la web no aparece, revisa
+*Settings → Pages → Source: Deploy from a branch → `gh-pages` / `(root)`*.
+Para retirar la demo, borra el workflow, la rama `gh-pages` y desactiva Pages.
 
 ## Nuevas features con OpenSpec
 
