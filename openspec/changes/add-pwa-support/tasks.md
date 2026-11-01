@@ -10,18 +10,19 @@
 
 ## 2. Configuración PWA
 
-- [ ] 2.1 Instalar `vite-plugin-pwa`, `workbox-window` y `@vite-pwa/assets-generator` como dependencias de desarrollo; verificar con `npm ls vite-plugin-pwa` sin errores de peer dependencies
-- [ ] 2.2 Crear `pwa-assets.config.ts` (preset `minimal-2023`, origen `public/favicon.svg`) y configurar `VitePWA` en `vite.config.ts`: `registerType: 'prompt'`, `injectRegister: false`, `pwaAssets`, manifest (nombre, nombre corto, colores, `display: standalone`), `workbox.navigateFallback` con denylist para la API, sin `runtimeCaching`, `devOptions.enabled: false`; verificar que `npm run build:demo` genera `manifest.webmanifest`, `sw.js` e iconos en `dist/`, y que el manifest tiene `scope` y `start_url` igual a `/beyblade-valencia/`
+- [x] 2.0 Generar los iconos a partir del logo LVB (`public/logo.png`, `pwa-64/192/512`, `maskable-icon-512x512.png`, `apple-touch-icon-180x180.png`, `favicon.ico`) y sustituir el favicon de Vite en `index.html`; verificado con revisión visual sobre fondo claro y oscuro, zona segura del maskable (radio 0.38 < 0.4) y `dist/index.html` del build de demo con rutas `/beyblade-valencia/...`
+- [ ] 2.1 Instalar `vite-plugin-pwa` y `workbox-window` como dependencias de desarrollo; verificar con `npm ls vite-plugin-pwa` sin errores de peer dependencies
+- [ ] 2.2 Configurar `VitePWA` en `vite.config.ts`: `registerType: 'prompt'`, `injectRegister: false`, manifest (nombre, nombre corto, colores, `display: standalone`, iconos de `public/` con `purpose` `any` y `maskable`), `includeAssets` para favicon y apple-touch-icon, `workbox.navigateFallback` con denylist para la API, sin `runtimeCaching`, `devOptions.enabled: false`; verificar que `npm run build:demo` genera `manifest.webmanifest` y `sw.js` en `dist/`, que el manifest tiene `scope` y `start_url` igual a `/beyblade-valencia/` y que los iconos están precacheados
 - [ ] 2.3 Verificar que `npm run build` (sin modo demo) genera un manifest con `scope` y `start_url` igual a `/`
 - [ ] 2.4 Añadir la referencia de tipos `vite-plugin-pwa/react` en `src/vite-env.d.ts` (o declarar el módulo virtual a mano si los tipos no encajan con TypeScript 7); verificar con `npm run typecheck`
-- [ ] 2.5 Añadir a `index.html` `theme-color`, `description` y `apple-touch-icon`; verificar que aparecen en `dist/index.html` tras el build
+- [ ] 2.5 Añadir a `index.html` `theme-color` y `description` (el `apple-touch-icon` ya está); verificar que aparecen en `dist/index.html` tras el build
 
 ## 3. Aviso de actualización
 
 - [ ] 3.1 Crear `src/app/pwa/UpdatePrompt.tsx` (props `needRefresh`, `onUpdate`, `onDismiss`; `role="status"`, botones "Actualizar" y "Cerrar") con estilos en `index.css`; verificar con `UpdatePrompt.test.tsx` que no se muestra sin `needRefresh`, que se muestra el texto "Hay una nueva versión disponible" y que cada botón llama a su callback
 - [ ] 3.2 Crear `src/app/pwa/usePwaUpdate.ts` sobre `useRegisterSW` de `virtual:pwa-register/react` (`update` llama a `updateServiceWorker(true)`, `dismiss` pone `needRefresh` a false); verificar con `usePwaUpdate.test.ts` usando `vi.mock('virtual:pwa-register/react')`
 - [ ] 3.3 Montar el aviso en `src/app/App.tsx`; verificar que `App.test.tsx` sigue pasando con el módulo virtual mockeado y que, sin versión pendiente, no se muestra ningún aviso
-- [ ] 3.4 Documentar en el README la sección PWA (instalación, caché del esqueleto, la API nunca se cachea, aviso de actualización, cómo cambiar los iconos); verificar que las rutas citadas existen
+- [ ] 3.4 Documentar en el README la sección PWA (instalación, caché del esqueleto, la API nunca se cachea, aviso de actualización, qué icono es cada archivo de `public/` y cómo regenerarlos desde `public/logo.png`); verificar que las rutas citadas existen
 
 ## 4. Comprobación en el navegador
 

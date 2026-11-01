@@ -25,8 +25,9 @@ La aplicación se va a construir como PWA (instalable y con el esqueleto de la a
 
 ## Impact
 
-- **Dependencias nuevas (dev)**: `vite-plugin-pwa` (compatible con Vite 8), `workbox-window` y `@vite-pwa/assets-generator`.
-- **Código**: `vite.config.ts` (plugin PWA y manifest), `src/main.tsx` (sin registro de MSW), `src/shared/api/httpClient.ts` (transporte de mocks), nuevo componente de aviso de actualización en `src/shared/`, `index.html` (metadatos PWA), `public/` (iconos generados; se elimina `mockServiceWorker.js`).
+- **Dependencias nuevas (dev)**: `vite-plugin-pwa` (compatible con Vite 8) y `workbox-window`.
+- **Código**: `vite.config.ts` (plugin PWA y manifest), `src/main.tsx` (sin registro de MSW), `src/shared/api/httpClient.ts` (transporte de mocks), nuevo aviso de actualización en `src/app/pwa/`, `index.html` (metadatos PWA), `public/` (se elimina `mockServiceWorker.js`).
+- **Iconos**: ya están en `public/`, generados a partir del logo LVB, y sustituyen al favicon de Vite.
 - **Despliegue**: la demo de GitHub Pages pasa a ser una PWA instalable con datos simulados. El workflow no cambia.
 - **Desarrollo**: el service worker de la PWA no se activa en `npm run dev`, para que la caché no oculte cambios.
 - **Fuera de alcance**: el login, la autenticación y las notificaciones push.

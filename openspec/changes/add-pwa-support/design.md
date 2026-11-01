@@ -18,7 +18,7 @@
 **Non-Goals:**
 - Caché de datos de la API o sincronización offline (background sync).
 - Notificaciones push.
-- Diseño final de iconos y marca: se generan a partir del `favicon.svg` actual y se podrán sustituir sin tocar código.
+- Vectorizar el logo: los iconos salen del raster del logo LVB. Si más adelante hay un SVG oficial, se regeneran sin tocar código.
 - Tests end-to-end permanentes en CI: la verificación de instalación y modo offline se hace con un script puntual de Playwright.
 
 ## Decisions
@@ -59,9 +59,20 @@ Workbox genera el service worker a partir de la lista de recursos del build. No 
 
 **Alternativa:** `injectManifest` con un service worker propio. Se descarta mientras no haga falta lógica a medida.
 
-### 3. Iconos con `@vite-pwa/assets-generator`
+### 3. Iconos generados a partir del logo LVB y guardados en `public/`
 
-Un archivo `pwa-assets.config.ts` con el preset `minimal-2023` genera, a partir de `public/favicon.svg`, los iconos 64, 192, 512, maskable y apple-touch. Se integra con la opción `pwaAssets` del plugin, así que los iconos se generan en el build y no se guardan en el repositorio. Cambiar de logo será sustituir el SVG.
+Los iconos se han generado a partir del logo del club (`public/logo.png`, logo recortado con fondo transparente) y se guardan en el repositorio:
+
+| Archivo | Uso |
+|---|---|
+| `pwa-64x64.png`, `pwa-192x192.png`, `pwa-512x512.png` | Iconos `any` del manifest: logo sobre círculo blanco, esquinas transparentes |
+| `maskable-icon-512x512.png` | Icono `maskable`: fondo blanco a sangre, logo dentro de la zona segura (radio máximo 0.38 frente al límite de 0.4) |
+| `apple-touch-icon-180x180.png` | iOS: fondo blanco opaco |
+| `favicon.ico` | 16, 32, 48 y 64 px |
+
+El manifest referencia estos archivos directamente.
+
+**Alternativa descartada:** `@vite-pwa/assets-generator` en build. El logo original es un raster con artefactos JPEG y la zona segura del icono maskable necesita un ajuste manual. Generar los iconos una vez y revisarlos a ojo da más control y quita una dependencia.
 
 ### 4. Aviso de actualización en `src/app/pwa/`
 
@@ -92,4 +103,4 @@ Al separar la presentación del hook, el componente se testea sin service worker
 
 ## Open Questions
 
-- Nombre corto y colores definitivos del manifest. Por ahora: "Beyblade Valencia" / "BeyVLC", `theme_color` `#e4572e` y fondo `#121212`. Cambiarlos solo toca la configuración.
+- Nombre corto y colores definitivos del manifest. Por ahora: "Beyblade Valencia" / "LVB", `theme_color` `#dd6e2f` (naranja del logo) y fondo `#ffffff` (el mismo que los iconos). Cambiarlos solo toca la configuración.
