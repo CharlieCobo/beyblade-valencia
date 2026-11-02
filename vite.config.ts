@@ -2,6 +2,7 @@
 import { copyFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -38,6 +39,7 @@ export default defineConfig(({ mode }) => {
     base: mode === 'demo' ? '/beyblade-valencia/' : '/',
     plugins: [
       react(),
+      tailwindcss(),
       mode === 'demo' && spaFallback404(),
       VitePWA({
         registerType: 'prompt',
@@ -48,8 +50,8 @@ export default defineConfig(({ mode }) => {
           short_name: 'LVB',
           description: 'Beyblade Valencia',
           lang: 'es',
-          theme_color: '#dd6e2f',
-          background_color: '#ffffff',
+          theme_color: '#121212',
+          background_color: '#121212',
           display: 'standalone',
           // scope y start_url se toman de `base` (/ o /beyblade-valencia/)
           icons: [

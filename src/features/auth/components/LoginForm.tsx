@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react'
 import { HttpError } from '@/shared/api/httpClient'
+import { Button } from '@/shared/ui/Button'
 import { useLogin } from '../hooks/useLogin'
 
 interface LoginFormProps {
@@ -28,26 +29,38 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       : null
 
   return (
-    <form className="login-form" aria-label="Iniciar sesión" onSubmit={handleSubmit}>
-      <label className="field">
+    <form className="grid gap-4" aria-label="Iniciar sesión" onSubmit={handleSubmit}>
+      <label className="grid gap-[0.35rem]">
         <span>Correo electrónico</span>
-        <input name="email" type="email" autoComplete="email" required />
+        <input
+          className="rounded-lg border border-foreground/30 bg-background px-[0.7rem] py-[0.55rem] text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+        />
       </label>
 
-      <label className="field">
+      <label className="grid gap-[0.35rem]">
         <span>Contraseña</span>
-        <input name="password" type="password" autoComplete="current-password" required />
+        <input
+          className="rounded-lg border border-foreground/30 bg-background px-[0.7rem] py-[0.55rem] text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
       </label>
 
       {message && (
-        <p role="alert" className="form-error">
+        <p role="alert" className="m-0 rounded-md border-l-4 border-danger bg-danger/12 px-3 py-2">
           {message}
         </p>
       )}
 
-      <button type="submit" className="button button--primary" disabled={isPending}>
+      <Button type="submit" variant="primary" disabled={isPending}>
         {isPending ? 'Iniciando sesión…' : 'Iniciar sesión'}
-      </button>
+      </Button>
     </form>
   )
 }

@@ -1,6 +1,6 @@
 # Beyblade Valencia
 
-PWA con React 19 + Vite + TypeScript, React Router, TanStack Query y Zustand, con Vitest y Testing Library para tests, y MSW + Faker para mocks.
+PWA con React 19 + Vite + TypeScript, Tailwind CSS, React Router, TanStack Query y Zustand, con Vitest y Testing Library para tests, y MSW + Faker para mocks.
 
 ## Scripts
 
@@ -12,9 +12,17 @@ PWA con React 19 + Vite + TypeScript, React Router, TanStack Query y Zustand, co
 | `npm run preview`       | Sirve el build                                           |
 | `npm run lint`          | Lint con oxlint                                          |
 | `npm run typecheck`     | Sólo comprobación de tipos                               |
+| `npm run format`        | Formatea el código con Prettier                          |
+| `npm run format:check`  | Comprueba el formato sin escribir (CI)                   |
 | `npm test`              | Vitest en modo watch                                     |
 | `npm run test:run`      | Vitest una sola vez (CI)                                 |
 | `npm run test:coverage` | Tests con cobertura (v8)                                 |
+
+### Formato
+
+El formato lo aplica Prettier (`.prettierrc.json`): comillas simples, sin `;`, comas finales y líneas de hasta 120 caracteres. `prettier-plugin-tailwindcss` ordena las clases de Tailwind en `className`, así que no hace falta cuidar su orden a mano. CI ejecuta `npm run format:check` y falla si algún archivo no está formateado.
+
+`openspec/` y `.claude/` quedan fuera (`.prettierignore`), porque los generan o reescriben herramientas.
 
 ## Arquitectura
 
@@ -39,11 +47,13 @@ src/
 │       └── index.ts     # API pública: lo único que importa el resto de la app
 ├── shared/              # Código reutilizable sin dominio
 │   ├── api/             # Cliente HTTP (httpGet, httpPost, apiUrl, HttpError)
-│   └── config/          # Variables de entorno tipadas
+│   ├── config/          # Variables de entorno tipadas
+│   └── ui/              # Componentes de interfaz sin dominio (Button)
 ├── mocks/               # Ensamblado de MSW
 │   ├── handlers.ts      # Agrega los handlers de todas las features
 │   ├── transport.ts     # mockTransport: mocks en el navegador (desarrollo y demo)
 │   └── server.ts        # setupServer (tests en Node)
+├── index.css            # Tailwind, tokens del tema y estilos base
 ├── test/
 │   ├── setup.ts         # jest-dom, cleanup y ciclo de vida del server MSW
 │   └── test-utils.tsx   # renderWithProviders (QueryClient + MemoryRouter, + userEvent) y re-exports de RTL
@@ -56,6 +66,36 @@ src/
 - `shared/` no importa nada de `features/`.
 - Alias `@/` → `src/` (configurado en `vite.config.ts` y `tsconfig.app.json`).
 - Los tests van junto al código que prueban (`Foo.tsx` → `Foo.test.tsx`).
+
+## Estilos
+
+Los estilos se escriben con utilidades de **Tailwind CSS v4** directamente en `className`. No hay hojas de estilo por componente ni clases globales: la configuración vive en `src/index.css` (`@import 'tailwindcss'` + `@theme`), sin `tailwind.config.js`.
+
+### Tokens del tema
+
+Usa siempre los tokens semánticos en lugar de colores de la paleta de Tailwind (`bg-card`, no `bg-zinc-900`):
+
+| Token        | Ejemplo de uso                            | Oscuro    | Claro     |
+| ------------ | ----------------------------------------- | --------- | --------- |
+| `background` | `bg-background` (página, inputs)          | `#121212` | `#ffffff` |
+| `foreground` | `text-foreground`, `border-foreground/30` | `#f1f1f1` | `#1a1a1a` |
+| `card`       | `bg-card` (tarjetas, login, avisos)       | `#1f1f22` | `#f4f4f5` |
+| `accent`     | `bg-accent`, `outline-accent`             | `#dd6e2f` | `#dd6e2f` |
+| `danger`     | `border-danger`, `bg-danger/12`           | `#ef5350` | `#c62828` |
+
+Cada token es una variable CSS (`--bg`, `--fg`, `--card`, `--accent`, `--danger`) con un valor en `:root` (claro) y otro en `.dark` (oscuro).
+
+### Tema oscuro por defecto
+
+La app es **siempre oscura**, sea cual sea la preferencia del sistema. `index.html` pone `class="dark"` y `color-scheme: dark` en `<html>`, así que el primer pintado ya es oscuro, antes de que se ejecute JavaScript. El manifest de la PWA usa `#121212` como `background_color` y `theme_color`.
+
+- Como los tokens cambian solos con la clase `.dark`, los componentes **no necesitan `dark:`** para los colores base.
+- La variante `dark:` funciona por clase (`@custom-variant dark` en `index.css`), no por `prefers-color-scheme`. Úsala solo para excepciones puntuales.
+- Los valores del tema claro están definidos pero no se usan. Un selector de tema futuro solo tendrá que poner o quitar `.dark` en `<html>` (y recordar la preferencia).
+
+### Componentes compartidos
+
+Cuando unas mismas clases se repiten en dos sitios, se extraen a un componente en `src/shared/ui/` en vez de crear una clase CSS con `@apply`. Por ahora existe `Button` (variantes `primary` y `secondary`; por defecto `type="button"`).
 
 ## Mocks
 

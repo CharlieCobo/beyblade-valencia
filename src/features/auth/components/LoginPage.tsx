@@ -21,9 +21,11 @@ export function LoginPage() {
   if (!isExpired) return <Navigate to={redirectTarget(location.state)} replace />
 
   return (
-    <main className="login-page">
-      <section className="login-card" aria-labelledby="login-title">
-        <h1 id="login-title">Beyblade Valencia</h1>
+    <main className="grid min-h-dvh place-items-center px-4 py-8">
+      <section className="w-full max-w-[380px] rounded-xl bg-card p-6" aria-labelledby="login-title">
+        <h1 id="login-title" className="mt-0 mb-[0.67em] text-[1.5rem] font-bold">
+          Beyblade Valencia
+        </h1>
         <LoginForm />
       </section>
     </main>
