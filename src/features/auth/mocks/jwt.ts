@@ -1,4 +1,4 @@
-import type { TokenPayload } from '../types/auth.types'
+import { TokenPayloadSchema, type TokenPayload } from '../schemas/token.schema'
 
 function base64UrlEncode(value: string): string {
   const bytes = new TextEncoder().encode(value)
@@ -13,8 +13,14 @@ export function buildFakeJwt(payload: TokenPayload): string {
   return `${header}.${body}.fake-signature`
 }
 
-/** Payload de un token vigente durante `ttlSeconds` a partir de ahora. */
+/** Payload de un token vigente durante `ttlSeconds` a partir de ahora. Cumple el contrato del payload. */
 export function buildTokenPayload(overrides: Partial<TokenPayload> = {}, ttlSeconds = 3600): TokenPayload {
   const iat = Math.floor(Date.now() / 1000)
-  return { sub: 'user-test-1', email: 'test@mail.com', iat, exp: iat + ttlSeconds, ...overrides }
+  return TokenPayloadSchema.parse({
+    sub: 'user-test-1',
+    email: 'test@mail.com',
+    iat,
+    exp: iat + ttlSeconds,
+    ...overrides,
+  })
 }

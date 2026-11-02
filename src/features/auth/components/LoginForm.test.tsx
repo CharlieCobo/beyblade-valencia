@@ -6,7 +6,7 @@ import { apiUrl } from '@/shared/api/httpClient'
 import { renderWithProviders, screen } from '@/test/test-utils'
 import { LOGIN_PATH } from '../api/auth.api'
 import { TEST_USER } from '../mocks/authUser.factory'
-import { useAuthStore } from '../store/auth.store'
+import { AUTH_STORAGE_KEY, useAuthStore } from '../store/auth.store'
 import { LoginForm } from './LoginForm'
 
 function spyOnLogin() {
@@ -95,6 +95,19 @@ describe('LoginForm', () => {
     await fillAndSubmit(user, TEST_USER.email, TEST_USER.password)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo iniciar sesión. Inténtalo de nuevo.')
+  })
+
+  it('muestra un error genérico y no guarda sesión si el token recibido no es válido', async () => {
+    server.use(http.post(apiUrl(LOGIN_PATH), () => HttpResponse.json({ accessToken: 'no-es-un-jwt' })))
+    const onSuccess = vi.fn<() => void>()
+    const { user } = renderWithProviders(<LoginForm onSuccess={onSuccess} />)
+
+    await fillAndSubmit(user, TEST_USER.email, TEST_USER.password)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo iniciar sesión. Inténtalo de nuevo.')
+    expect(useAuthStore.getState().token).toBeNull()
+    expect(JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) ?? '{}').state?.token ?? null).toBeNull()
+    expect(onSuccess).not.toHaveBeenCalled()
   })
 
   it('avisa de que no hay conexión y no envía la petición', async () => {

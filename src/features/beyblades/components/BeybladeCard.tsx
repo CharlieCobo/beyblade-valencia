@@ -1,4 +1,4 @@
-import type { Beyblade } from '../types/beyblade.types'
+import type { Beyblade } from '../schemas/beyblade.schema'
 
 interface Props {
   beyblade: Beyblade

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { useAuthStore } from '@/features/auth/store/auth.store'
+import { AUTH_STORAGE_KEY, useAuthStore } from '@/features/auth/store/auth.store'
 import { buildFakeJwt, buildTokenPayload } from '@/features/auth/mocks/jwt'
 import { server } from '@/mocks/server'
 import { renderWithProviders, screen } from '@/test/test-utils'
@@ -28,6 +28,19 @@ describe('App', () => {
     expect(screen.getByRole('form', { name: 'Iniciar sesión' })).toBeInTheDocument()
     expect(requests.filter((url) => url.includes('/beyblades'))).toEqual([])
     server.events.removeAllListeners()
+  })
+
+  it('con una sesión guardada corrupta muestra el login y vacía la sesión guardada', async () => {
+    localStorage.setItem(
+      AUTH_STORAGE_KEY,
+      JSON.stringify({ state: { token: 'abc', email: 'test@mail.com', exp: 'mañana' }, version: 0 }),
+    )
+    await useAuthStore.persist.rehydrate()
+
+    renderWithProviders(<App />)
+
+    expect(screen.getByRole('form', { name: 'Iniciar sesión' })).toBeInTheDocument()
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
   })
 
   it('con sesión muestra el título y la lista de beyblades', async () => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getBeyblades } from '../api/beyblades.api'
-import type { Beyblade } from '../types/beyblade.types'
+import type { Beyblade } from '../schemas/beyblade.schema'
 
 type State = { status: 'loading' } | { status: 'error'; error: Error } | { status: 'success'; data: Beyblade[] }
 

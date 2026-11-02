@@ -41,4 +41,37 @@ describe('useAuthStore', () => {
 
     expect(useAuthStore.getState()).toMatchObject({ token: null, email: null, exp: null })
   })
+
+  describe('al recuperar la sesión guardada', () => {
+    function store(state: unknown) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ state, version: 0 }))
+    }
+
+    it('recupera una sesión válida', async () => {
+      const payload = buildTokenPayload()
+      const token = buildFakeJwt(payload)
+      store({ token, email: payload.email, exp: payload.exp })
+
+      await useAuthStore.persist.rehydrate()
+
+      expect(useAuthStore.getState()).toMatchObject({ token, email: payload.email, exp: payload.exp })
+    })
+
+    it('descarta una sesión corrupta y la borra del almacenamiento', async () => {
+      store({ token: 'abc', email: 'test@mail.com', exp: 'mañana' })
+
+      await useAuthStore.persist.rehydrate()
+
+      expect(useAuthStore.getState()).toMatchObject({ token: null, email: null, exp: null })
+      expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+    })
+
+    it('descarta un valor que ni siquiera es una sesión', async () => {
+      store('hola')
+
+      await useAuthStore.persist.rehydrate()
+
+      expect(useAuthStore.getState().token).toBeNull()
+    })
+  })
 })

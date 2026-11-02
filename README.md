@@ -1,6 +1,6 @@
 # Beyblade Valencia
 
-PWA con React 19 + Vite + TypeScript, Tailwind CSS, React Router, TanStack Query y Zustand, con Vitest y Testing Library para tests, y MSW + Faker para mocks.
+PWA con React 19 + Vite + TypeScript, Tailwind CSS, Zod, React Router, TanStack Query y Zustand, con Vitest y Testing Library para tests, y MSW + Faker para mocks.
 
 ## Scripts
 
@@ -43,11 +43,11 @@ src/
 │       ├── lib/         # (opcional) Utilidades puras de la feature
 │       ├── mocks/       # Factories (Faker) y handlers (MSW) de la feature
 │       ├── store/       # (opcional) Estado de cliente con Zustand
-│       ├── types/       # Tipos del dominio
+│       ├── schemas/     # Esquemas de Zod (contratos) y tipos inferidos de ellos
 │       └── index.ts     # API pública: lo único que importa el resto de la app
 ├── shared/              # Código reutilizable sin dominio
-│   ├── api/             # Cliente HTTP (httpGet, httpPost, apiUrl, HttpError)
-│   ├── config/          # Variables de entorno tipadas
+│   ├── api/             # Cliente HTTP validado (httpGet, httpPost, apiUrl, HttpError, ContractError)
+│   ├── config/          # Variables de entorno validadas (env, parseEnv)
 │   └── ui/              # Componentes de interfaz sin dominio (Button)
 ├── mocks/               # Ensamblado de MSW
 │   ├── handlers.ts      # Agrega los handlers de todas las features
@@ -99,7 +99,9 @@ Cuando unas mismas clases se repiten en dos sitios, se extraen a un componente e
 
 ## Mocks
 
-- **Faker**: cada entidad tiene una factory `buildX(overrides)` en `features/<feature>/mocks/`.
+- **Faker**: cada entidad tiene una factory `buildX(overrides)` en `features/<feature>/mocks/`. Devuelve
+  `XSchema.parse(...)`, así que un mock no puede salirse del contrato y un override inválido falla en el acto.
+  Los tests que necesitan datos inválidos los escriben a mano a propósito.
 - **MSW**: los handlers por defecto viven en la feature y se registran en `src/mocks/handlers.ts`.
   - En tests, `server` se arranca en `src/test/setup.ts` con `onUnhandledFrame: 'error'`, así que cualquier petición no mockeada hace fallar el test.
   - Para un caso concreto, sobrescribe con `server.use(...)` (se resetea tras cada test):
@@ -128,9 +130,29 @@ Cuando unas mismas clases se repiten en dos sitios, se extraen a un componente e
 ### Añadir una nueva feature
 
 1. Crea `src/features/<nombre>/` con la estructura anterior.
-2. Añade su factory y sus handlers en `mocks/`.
-3. Registra los handlers en `src/mocks/handlers.ts`.
-4. Exporta lo necesario desde `index.ts`.
+2. Define sus contratos en `schemas/` y pásalos a `httpGet`/`httpPost` desde `api/`.
+3. Añade su factory y sus handlers en `mocks/`.
+4. Registra los handlers en `src/mocks/handlers.ts`.
+5. Exporta lo necesario desde `index.ts`.
+
+## Contratos (Zod)
+
+Los esquemas de Zod son la **única fuente de verdad** de los datos: viven en `features/<feature>/schemas/` y los tipos se infieren de ellos (`type Beyblade = z.infer<typeof BeybladeSchema>`). No hay interfaces escritas a mano para datos que vienen de fuera.
+
+Ningún dato externo entra en la app sin pasar por un esquema. El rigor depende de la dirección del dato:
+
+| Dato                     | Constructor                  | Por qué                                                      |
+| ------------------------ | ---------------------------- | ------------------------------------------------------------ |
+| Respuestas de la API     | `z.object` (descarta extras) | Que el backend añada un campo no debe romper la app          |
+| Cuerpos que enviamos     | `z.strictObject`             | Un campo de más es un bug nuestro                            |
+| Configuración `VITE_*`   | `z.strictObject`             | Detecta erratas en el nombre de las variables                |
+| Sesión en `localStorage` | `z.object`                   | La escribe la propia app; tolera campos de versiones futuras |
+| Payload del JWT          | `z.object`                   | Los JWT reales traen claims extra (`iss`, `aud`…)            |
+
+- **Cliente HTTP**: `httpGet(path, responseSchema)` y `httpPost(path, body, { request, response })` devuelven datos ya validados y tipados por el esquema. `httpPost` valida el cuerpo antes de enviarlo: si no cumple, no hay petición.
+- **`ContractError`**: se lanza cuando lo enviado o lo recibido no cumple el contrato (con `method`, `path`, `direction` e `issues`). Es distinto de `HttpError`, así que las vistas lo tratan como su error inesperado. En desarrollo se registra en la consola con el campo exacto que falla.
+- **Configuración**: `src/shared/config/env.ts` valida las variables `VITE_*` al arrancar. Un valor no permitido o una variable desconocida impiden arrancar con un error que nombra la variable.
+- **Sesión guardada**: si lo guardado en `localStorage` no cumple `SessionSchema`, se descarta y se borra, y el usuario queda sin sesión.
 
 ## Autenticación
 
