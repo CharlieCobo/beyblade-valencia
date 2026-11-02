@@ -16,7 +16,7 @@
 
 ## 3. Migración de componentes
 
-- [ ] 3.1 Crear `src/shared/ui/Button.tsx` (variantes `primary` y `secondary`, estado `disabled`) con su test (texto, `type`, `disabled` y `onClick`); verificar que el test pasa
+- [x] 3.1 Crear `src/shared/ui/Button.tsx` (variantes `primary` y `secondary`, estado `disabled`) con su test (texto, `type`, `disabled` y `onClick`); verificar que el test pasa
 - [x] 3.2 Migrar `AppLayout`, `BeybladeList`, `BeybladeCard` y `UpdatePrompt` (este último con `Button`) a utilidades de Tailwind; verificar que sus tests pasan sin cambios
 - [x] 3.3 Migrar `LoginPage` y `LoginForm` a utilidades de Tailwind y `Button`, sin cambiar su lógica; verificar que los tests de `auth` pasan sin cambios
 - [x] 3.4 Eliminar de `src/index.css` las clases antiguas (`.container`, `.grid`, `.card`, `.badge`, `.button*`, `.login-*`, `.field`, `.form-error`, `.update-prompt*`) y la media query de `prefers-color-scheme`; verificar con `grep` que ningún componente usa ya esas clases
