@@ -4,7 +4,9 @@ import { UpdatePrompt } from './UpdatePrompt'
 
 describe('UpdatePrompt', () => {
   it('no muestra nada si no hay una versión nueva', () => {
-    renderWithProviders(<UpdatePrompt needRefresh={false} onUpdate={vi.fn<() => void>()} onDismiss={vi.fn<() => void>()} />)
+    renderWithProviders(
+      <UpdatePrompt needRefresh={false} onUpdate={vi.fn<() => void>()} onDismiss={vi.fn<() => void>()} />,
+    )
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })

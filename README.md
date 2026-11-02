@@ -4,17 +4,17 @@ PWA con React 19 + Vite + TypeScript, React Router, TanStack Query y Zustand, co
 
 ## Scripts
 
-| Comando                 | Descripción                                          |
-| ----------------------- | ---------------------------------------------------- |
+| Comando                 | Descripción                                              |
+| ----------------------- | -------------------------------------------------------- |
 | `npm run dev`           | Servidor de desarrollo (con la API simulada por defecto) |
-| `npm run build`         | Type-check + build de producción                     |
-| `npm run build:demo`    | Build de demo con MSW activo (GitHub Pages)          |
-| `npm run preview`       | Sirve el build                                       |
-| `npm run lint`          | Lint con oxlint                                      |
-| `npm run typecheck`     | Sólo comprobación de tipos                           |
-| `npm test`              | Vitest en modo watch                                 |
-| `npm run test:run`      | Vitest una sola vez (CI)                             |
-| `npm run test:coverage` | Tests con cobertura (v8)                             |
+| `npm run build`         | Type-check + build de producción                         |
+| `npm run build:demo`    | Build de demo con MSW activo (GitHub Pages)              |
+| `npm run preview`       | Sirve el build                                           |
+| `npm run lint`          | Lint con oxlint                                          |
+| `npm run typecheck`     | Sólo comprobación de tipos                               |
+| `npm test`              | Vitest en modo watch                                     |
+| `npm run test:run`      | Vitest una sola vez (CI)                                 |
+| `npm run test:coverage` | Tests con cobertura (v8)                                 |
 
 ## Arquitectura
 
@@ -73,7 +73,7 @@ src/
   contra los mismos handlers, y si ninguno coincide la envía a la red. Así el único service worker es el de la PWA.
   - Solo se simulan las peticiones que pasan por `src/shared/api/httpClient.ts`.
   - Las peticiones simuladas no aparecen en la pestaña Network; en desarrollo se registran en la consola
-    como `[mock] GET <url> -> <status>` (nivel *Verbose*/`debug`).
+    como `[mock] GET <url> -> <status>` (nivel _Verbose_/`debug`).
   - El build de producción (`npm run build`) no incluye MSW, Faker ni los handlers.
 
 ### Estado y peticiones
@@ -125,13 +125,13 @@ Configurada con [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) en `vite.
 
 ### Iconos (`public/`)
 
-| Archivo | Uso |
-| --- | --- |
-| `logo.png` | Logo LVB con fondo transparente, origen del resto |
-| `pwa-64x64.png`, `pwa-192x192.png`, `pwa-512x512.png` | Iconos `any` del manifest (logo sobre círculo blanco) |
-| `maskable-icon-512x512.png` | Icono `maskable` (fondo blanco, logo dentro de la zona segura del 80 %) |
-| `apple-touch-icon-180x180.png` | Icono de iOS |
-| `favicon.ico` | Favicon (16, 32, 48 y 64 px) |
+| Archivo                                               | Uso                                                                     |
+| ----------------------------------------------------- | ----------------------------------------------------------------------- |
+| `logo.png`                                            | Logo LVB con fondo transparente, origen del resto                       |
+| `pwa-64x64.png`, `pwa-192x192.png`, `pwa-512x512.png` | Iconos `any` del manifest (logo sobre círculo blanco)                   |
+| `maskable-icon-512x512.png`                           | Icono `maskable` (fondo blanco, logo dentro de la zona segura del 80 %) |
+| `apple-touch-icon-180x180.png`                        | Icono de iOS                                                            |
+| `favicon.ico`                                         | Favicon (16, 32, 48 y 64 px)                                            |
 
 Para cambiar el logo, regenera estos archivos a partir de un `logo.png` cuadrado nuevo, con los mismos
 nombres y tamaños; el icono maskable debe dejar el logo dentro de un círculo del 80 % del lado.
@@ -140,7 +140,7 @@ Puedes comprobarlo en <https://maskable.app/>.
 ## Demo en GitHub Pages
 
 El workflow `.github/workflows/deploy-demo.yml` publica en cada push a `master` (o manualmente
-desde *Actions → Run workflow*) un build con `--mode demo`:
+desde _Actions → Run workflow_) un build con `--mode demo`:
 
 - `.env.demo` activa los mocks, así que la API se simula en el navegador con datos de Faker.
 - `base` es `/beyblade-valencia/`.
@@ -151,7 +151,7 @@ desde *Actions → Run workflow*) un build con `--mode demo`:
 URL: https://charliecobo.github.io/beyblade-valencia/
 
 El workflow publica `dist/` en la rama `gh-pages`. Si la web no aparece, revisa
-*Settings → Pages → Source: Deploy from a branch → `gh-pages` / `(root)`*.
+_Settings → Pages → Source: Deploy from a branch → `gh-pages` / `(root)`_.
 Para retirar la demo, borra el workflow, la rama `gh-pages` y desactiva Pages.
 
 ## Nuevas features con OpenSpec

@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apiUrl, HttpError, httpGet, httpPost, resetHttpTransport, setHttpTransport, type HttpTransport } from './httpClient'
+import {
+  apiUrl,
+  HttpError,
+  httpGet,
+  httpPost,
+  resetHttpTransport,
+  setHttpTransport,
+  type HttpTransport,
+} from './httpClient'
 
 describe('httpClient', () => {
   afterEach(() => resetHttpTransport())
