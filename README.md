@@ -1,6 +1,6 @@
 # Beyblade Valencia
 
-PWA con React 19 + Vite + TypeScript, Tailwind CSS, Zod, React Router, TanStack Query y Zustand, con Vitest y Testing Library para tests, y MSW + Faker para mocks.
+PWA con React 19 + Vite + TypeScript, Tailwind CSS, Zod, React Hook Form, React Router, TanStack Query y Zustand, con Vitest y Testing Library para tests, y MSW + Faker para mocks.
 
 ## Scripts
 
@@ -48,7 +48,7 @@ src/
 ├── shared/              # Código reutilizable sin dominio
 │   ├── api/             # Cliente HTTP validado (httpGet, httpPost, apiUrl, HttpError, ContractError)
 │   ├── config/          # Variables de entorno validadas (env, parseEnv)
-│   └── ui/              # Componentes de interfaz sin dominio (Button)
+│   └── ui/              # Componentes de interfaz sin dominio (Button, TextField)
 ├── mocks/               # Ensamblado de MSW
 │   ├── handlers.ts      # Agrega los handlers de todas las features
 │   ├── transport.ts     # mockTransport: mocks en el navegador (desarrollo y demo)
@@ -95,7 +95,7 @@ La app es **siempre oscura**, sea cual sea la preferencia del sistema. `index.ht
 
 ### Componentes compartidos
 
-Cuando unas mismas clases se repiten en dos sitios, se extraen a un componente en `src/shared/ui/` en vez de crear una clase CSS con `@apply`. Por ahora existe `Button` (variantes `primary` y `secondary`; por defecto `type="button"`).
+Cuando unas mismas clases se repiten en dos sitios, se extraen a un componente en `src/shared/ui/` en vez de crear una clase CSS con `@apply`. Por ahora existen `Button` (variantes `primary` y `secondary`; por defecto `type="button"`) y `TextField` (ver [Formularios](#formularios)).
 
 ## Mocks
 
@@ -153,6 +153,36 @@ Ningún dato externo entra en la app sin pasar por un esquema. El rigor depende 
 - **`ContractError`**: se lanza cuando lo enviado o lo recibido no cumple el contrato (con `method`, `path`, `direction` e `issues`). Es distinto de `HttpError`, así que las vistas lo tratan como su error inesperado. En desarrollo se registra en la consola con el campo exacto que falla.
 - **Configuración**: `src/shared/config/env.ts` valida las variables `VITE_*` al arrancar. Un valor no permitido o una variable desconocida impiden arrancar con un error que nombra la variable.
 - **Sesión guardada**: si lo guardado en `localStorage` no cumple `SessionSchema`, se descarta y se borra, y el usuario queda sin sesión.
+
+## Formularios
+
+Todos los formularios siguen el mismo patrón: **esquema de Zod + `useForm` (React Hook Form) + `zodResolver` + `TextField`**. Ejemplo real (`features/auth/components/LoginForm.tsx`):
+
+```tsx
+const {
+  register,
+  handleSubmit,
+  formState: { errors },
+} = useForm<LoginFormValues, unknown, LoginFormOutput>({
+  resolver: zodResolver(LoginFormSchema),
+  mode: 'onTouched',
+  defaultValues: { email: '', password: '' },
+})
+
+<form noValidate onSubmit={handleSubmit((credentials) => submit(credentials, { onSuccess }))}>
+  <TextField label="Correo electrónico" type="email" autoComplete="email" error={errors.email?.message} {...register('email')} />
+  ...
+</form>
+```
+
+- **Esquema del formulario** en `features/<feature>/schemas/<nombre>Form.schema.ts`, con los mensajes en español y las transformaciones de entrada (p. ej. `trim` del correo). Los valores del formulario se tipan con `z.input` y lo que entrega `handleSubmit` con `z.output`, ya transformado.
+- **Separado del contrato de la API**: el esquema del formulario no es el de la petición (`LoginRequestSchema`). Un test de tipos (`expectTypeOf<LoginFormOutput>().toEqualTypeOf<LoginRequest>()`) impide que se desvíen, y `httpPost` sigue validando el cuerpo al enviarlo.
+- **`mode: 'onTouched'`**: el error de un campo aparece al salir de él o al enviar, nunca mientras se escribe por primera vez. Una vez visible, se revalida al escribir y desaparece en cuanto el valor es válido.
+- **Foco**: al enviar con errores, el foco va al primer campo inválido. React Hook Form sigue el orden de `register`, así que **registra los campos en el orden visual**.
+- **`noValidate`** en el `<form>` desactiva los avisos nativos del navegador. Los inputs conservan su `type` y `autoComplete` (teclado móvil y autocompletado).
+- **`TextField`** (`src/shared/ui/`) pinta la etiqueta, el input y el error. Con error marca el campo con `aria-invalid` y lo asocia al mensaje con `aria-describedby`. Recibe la `ref` de `register` como una prop más (React 19); sin ella no funciona el foco.
+- El envío, el estado pendiente y los errores de la API no son de React Hook Form: siguen en el hook de la feature (p. ej. `useLogin`).
+- En los tests, la validación es asíncrona: espera los mensajes con `findBy*`.
 
 ## Autenticación
 

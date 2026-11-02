@@ -34,25 +34,93 @@ describe('LoginForm', () => {
     expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeEnabled()
   })
 
-  it('no envía la petición con los campos vacíos', async () => {
-    const onRequest = spyOnLogin()
-    const { user } = renderWithProviders(<LoginForm />)
+  describe('validación', () => {
+    const email = () => screen.getByLabelText(/correo/i)
+    const password = () => screen.getByLabelText(/contraseña/i)
 
-    await fillAndSubmit(user, '', '')
+    it('no muestra errores al abrir el formulario', () => {
+      renderWithProviders(<LoginForm />)
 
-    expect(screen.getByLabelText(/correo/i)).toBeInvalid()
-    expect(screen.getByLabelText(/contraseña/i)).toBeInvalid()
-    expect(onRequest).not.toHaveBeenCalled()
-  })
+      expect(email()).not.toHaveAttribute('aria-invalid')
+      expect(password()).not.toHaveAttribute('aria-invalid')
+      expect(screen.queryByText(/^Introduce/)).not.toBeInTheDocument()
+    })
 
-  it('no envía la petición con un correo inválido', async () => {
-    const onRequest = spyOnLogin()
-    const { user } = renderWithProviders(<LoginForm />)
+    it('con los campos vacíos muestra los mensajes, enfoca el correo y no envía la petición', async () => {
+      const onRequest = spyOnLogin()
+      const { user } = renderWithProviders(<LoginForm />)
 
-    await fillAndSubmit(user, 'test-mail.com', 'Test1234!')
+      await fillAndSubmit(user, '', '')
 
-    expect(screen.getByLabelText(/correo/i)).toBeInvalid()
-    expect(onRequest).not.toHaveBeenCalled()
+      expect(await screen.findByText('Introduce tu correo')).toBeInTheDocument()
+      expect(screen.getByText('Introduce tu contraseña')).toBeInTheDocument()
+      expect(email()).toHaveAttribute('aria-invalid', 'true')
+      expect(email()).toHaveAccessibleDescription('Introduce tu correo')
+      expect(password()).toHaveAttribute('aria-invalid', 'true')
+      expect(password()).toHaveAccessibleDescription('Introduce tu contraseña')
+      expect(email()).toHaveFocus()
+      expect(onRequest).not.toHaveBeenCalled()
+    })
+
+    it('con un correo inválido pide uno válido y no envía la petición', async () => {
+      const onRequest = spyOnLogin()
+      const { user } = renderWithProviders(<LoginForm />)
+
+      await fillAndSubmit(user, 'test-mail.com', 'Test1234!')
+
+      expect(await screen.findByText('Introduce un correo válido')).toBeInTheDocument()
+      expect(email()).toHaveFocus()
+      expect(onRequest).not.toHaveBeenCalled()
+    })
+
+    it('no muestra el error mientras se escribe por primera vez en un campo', async () => {
+      const { user } = renderWithProviders(<LoginForm />)
+
+      await user.type(email(), 'test-mail')
+
+      expect(email()).not.toHaveAttribute('aria-invalid')
+      expect(screen.queryByText('Introduce un correo válido')).not.toBeInTheDocument()
+    })
+
+    it('muestra el error al salir del campo sin mostrar los de los campos no tocados', async () => {
+      const { user } = renderWithProviders(<LoginForm />)
+
+      await user.type(email(), 'test-mail.com')
+      await user.tab()
+
+      expect(await screen.findByText('Introduce un correo válido')).toBeInTheDocument()
+      expect(email()).toHaveAttribute('aria-invalid', 'true')
+      expect(password()).not.toHaveAttribute('aria-invalid')
+      expect(screen.queryByText('Introduce tu contraseña')).not.toBeInTheDocument()
+    })
+
+    it('quita el error en cuanto el valor es válido, sin salir del campo', async () => {
+      const { user } = renderWithProviders(<LoginForm />)
+      await user.type(email(), 'test')
+      await user.tab()
+      expect(await screen.findByText('Introduce un correo válido')).toBeInTheDocument()
+
+      await user.click(email())
+      await user.type(email(), '@mail.com')
+
+      await vi.waitFor(() => expect(screen.queryByText('Introduce un correo válido')).not.toBeInTheDocument())
+      expect(email()).not.toHaveAttribute('aria-invalid')
+      expect(email()).toHaveFocus()
+    })
+
+    it('envía el correo sin los espacios de alrededor', async () => {
+      const bodies: unknown[] = []
+      server.events.on('request:start', async ({ request }) => {
+        if (request.url === apiUrl(LOGIN_PATH)) bodies.push(await request.clone().json())
+      })
+      const onSuccess = vi.fn<() => void>()
+      const { user } = renderWithProviders(<LoginForm onSuccess={onSuccess} />)
+
+      await fillAndSubmit(user, ` ${TEST_USER.email} `, TEST_USER.password)
+
+      await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled())
+      expect(bodies).toEqual([{ email: TEST_USER.email, password: TEST_USER.password }])
+    })
   })
 
   it('inicia sesión con el usuario de prueba', async () => {

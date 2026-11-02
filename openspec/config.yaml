@@ -6,9 +6,10 @@ context: |
   Keep OpenSpec structural headings and SHALL/MUST keywords in English.
 
   Proyecto: Beyblade Valencia (SPA de frontend, sin backend propio todavía).
-  Stack: React 19, Vite 8, TypeScript 7, Zod 4, Tailwind CSS 4, Vitest 5, Testing Library, MSW 3, Faker, oxlint, Prettier.
+  Stack: React 19, Vite 8, TypeScript 7, Zod 4, React Hook Form 7, Tailwind CSS 4, Vitest 5, Testing Library, MSW 3, Faker, oxlint, Prettier.
   Estilos: utilidades de Tailwind con los tokens del tema (background, foreground, card, accent, danger);
   tema oscuro por defecto (.dark en <html>); lo repetido se extrae a src/shared/ui/.
+  Formularios: esquema de Zod + useForm (React Hook Form) + zodResolver + TextField, mode 'onTouched'.
 
   Arquitectura por features (ver README.md):
   - Cada feature vive en src/features/<feature>/ con api/, components/, hooks/,
