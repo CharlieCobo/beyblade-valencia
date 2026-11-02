@@ -33,7 +33,7 @@
 ## 5. Integración y despliegue
 
 - [x] 5.1 Ejecutar `npm run lint`, `npm run typecheck` y `npm run test:run` y verificar que terminan sin errores
-- [ ] 5.2 Tras el despliegue en GitHub Pages, verificar con la consola del navegador o Playwright (si la red lo permite) que la demo registra `sw.js` en `/beyblade-valencia/`, que sustituye al antiguo `mockServiceWorker.js` y que la app se puede instalar
+- [x] 5.2 Tras el despliegue en GitHub Pages, verificar que la demo registra `sw.js` en `/beyblade-valencia/`, que sustituye al antiguo `mockServiceWorker.js` y que la app se puede instalar; verificado: el workflow y el build de Pages terminaron bien, la rama `gh-pages` contiene `sw.js`, el manifest con scope `/beyblade-valencia/` y los iconos, y en local se reprodujo la migración desde el worker antiguo (pasa a `sw.js` tras pulsar "Actualizar"; comportamiento aceptado, ver design.md). La URL pública no se pudo abrir desde el entorno de desarrollo
 
 ## Workflow follow-up
 

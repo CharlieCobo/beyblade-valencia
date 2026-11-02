@@ -90,7 +90,7 @@ Al separar la presentación del hook, el componente se testea sin service worker
 
 ## Risks / Trade-offs
 
-- [Los visitantes de la demo ya tienen registrado `mockServiceWorker.js` en `/beyblade-valencia/`] → El service worker de la PWA se registra en el mismo scope y lo sustituye. Se verifica abriendo la demo con el service worker antiguo instalado (tarea 5.2).
+- [Los visitantes de la demo ya tienen registrado `mockServiceWorker.js` en `/beyblade-valencia/`] → Comprobado en local: `sw.js` se instala y queda en espera mientras el worker antiguo sigue controlando la página. La app funciona (los mocks ya no dependen de un service worker) y aparece el aviso de nueva versión. Al pulsar "Actualizar", `sw.js` pasa a ser el único service worker y la app funciona sin conexión. **Decisión aceptada**: no se fuerza la migración, para no romper la regla de no recargar sin permiso; la demo es temporal y tiene pocos visitantes.
 - [Las peticiones simuladas ya no aparecen en la pestaña Network de DevTools] → En desarrollo, el transporte de mocks escribe en `console.debug` el método, la URL y el estado de cada petición resuelta.
 - [Los usuarios pueden quedarse con una versión vieja si nunca pulsan "Actualizar"] → Es lo que se ha decidido a cambio de no perder formularios. El aviso se vuelve a mostrar en cada carga mientras haya una versión pendiente.
 - [Compatibilidad de los tipos de `vite-plugin-pwa` con TypeScript 7] → Se comprueba con `npm run typecheck` en la tarea de instalación. Si falla, se declara el módulo virtual a mano en `vite-env.d.ts`.
