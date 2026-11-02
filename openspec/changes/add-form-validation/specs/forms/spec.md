@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define el comportamiento común de los formularios de la aplicación: cuándo se validan los datos, cómo se muestran los errores junto a cada campo de forma accesible y cuándo se permite el envío.
+Define el comportamiento común de los formularios de la aplicación: cuándo se validan los datos, cómo y cuándo se muestran los errores junto a cada campo de forma accesible, adónde va el foco y cuándo se permite el envío.
 
 ## ADDED Requirements
 
@@ -30,6 +30,10 @@ El error de un campo SHALL mostrarse solo cuando el usuario ha salido de ese cam
 - **WHEN** el usuario abre un formulario sin tocar ningún campo
 - **THEN** no se muestra ningún error
 
+#### Scenario: Escribir sin salir del campo
+- **WHEN** el usuario empieza a escribir un valor aún inválido en un campo que no había tocado
+- **THEN** no se muestra el error mientras sigue en el campo
+
 #### Scenario: Salir de un campo inválido
 - **WHEN** el usuario escribe un valor inválido en un campo y pasa al siguiente
 - **THEN** se muestra el error de ese campo
@@ -39,6 +43,13 @@ El error de un campo SHALL mostrarse solo cuando el usuario ha salido de ese cam
 - **GIVEN** un campo muestra un error
 - **WHEN** el usuario escribe un valor válido
 - **THEN** el error desaparece sin necesidad de salir del campo
+
+### Requirement: Foco en el primer campo inválido
+Al intentar enviar un formulario con errores, el foco SHALL moverse al primer campo inválido en el orden del formulario.
+
+#### Scenario: Varios campos inválidos
+- **WHEN** el usuario envía un formulario con el primer y el segundo campo inválidos
+- **THEN** el foco queda en el primer campo
 
 ### Requirement: Errores accesibles
 Cada campo con un error visible SHALL marcarse como inválido para las tecnologías de asistencia y SHALL asociarse a su mensaje de error para que este se anuncie junto al campo.
