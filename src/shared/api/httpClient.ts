@@ -34,17 +34,30 @@ export function apiUrl(path: string): string {
   return new URL(`${base}${path}`, window.location.origin).toString()
 }
 
-export async function httpGet<T>(path: string, init?: RequestInit): Promise<T> {
-  const request = new Request(apiUrl(path), {
+async function request<T>(method: string, path: string, init?: RequestInit): Promise<T> {
+  const httpRequest = new Request(apiUrl(path), {
     ...init,
-    method: 'GET',
+    method,
     headers: { Accept: 'application/json', ...init?.headers },
   })
-  const response = await transport(request)
+  const response = await transport(httpRequest)
 
   if (!response.ok) {
-    throw new HttpError(response.status, `GET ${path} falló con ${response.status}`)
+    throw new HttpError(response.status, `${method} ${path} falló con ${response.status}`)
   }
 
   return (await response.json()) as T
+}
+
+export function httpGet<T>(path: string, init?: RequestInit): Promise<T> {
+  return request<T>('GET', path, init)
+}
+
+/** Envía `body` serializado como JSON. */
+export function httpPost<TBody, TResponse>(path: string, body: TBody, init?: RequestInit): Promise<TResponse> {
+  return request<TResponse>('POST', path, {
+    ...init,
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json', ...init?.headers },
+  })
 }

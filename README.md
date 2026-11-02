@@ -1,6 +1,6 @@
 # Beyblade Valencia
 
-PWA con React 19 + Vite + TypeScript, con Vitest y Testing Library para tests, y MSW + Faker para mocks.
+PWA con React 19 + Vite + TypeScript, React Router, TanStack Query y Zustand, con Vitest y Testing Library para tests, y MSW + Faker para mocks.
 
 ## Scripts
 
@@ -22,18 +22,23 @@ Organización **por features**: cada dominio vive en su carpeta y expone una API
 
 ```
 src/
-├── app/                 # Composición de la app: App, providers, rutas
+├── app/                 # Composición de la app: App (rutas), queryClient
+│   ├── layout/          # AppLayout: estructura visual común (header y menú lateral, más adelante)
+│   ├── pages/           # Páginas que componen features (HomePage)
 │   └── pwa/             # Registro del service worker y aviso de actualización
 ├── features/
+│   ├── auth/            # Login, sesión (useUser) y protección de rutas (RequireAuth)
 │   └── beyblades/       # Una feature = un dominio
 │       ├── api/         # Llamadas HTTP de la feature
 │       ├── components/  # Componentes (+ tests colocados *.test.tsx)
 │       ├── hooks/       # Lógica de estado / data fetching
+│       ├── lib/         # (opcional) Utilidades puras de la feature
 │       ├── mocks/       # Factories (Faker) y handlers (MSW) de la feature
+│       ├── store/       # (opcional) Estado de cliente con Zustand
 │       ├── types/       # Tipos del dominio
 │       └── index.ts     # API pública: lo único que importa el resto de la app
 ├── shared/              # Código reutilizable sin dominio
-│   ├── api/             # Cliente HTTP (httpGet, apiUrl, HttpError)
+│   ├── api/             # Cliente HTTP (httpGet, httpPost, apiUrl, HttpError)
 │   └── config/          # Variables de entorno tipadas
 ├── mocks/               # Ensamblado de MSW
 │   ├── handlers.ts      # Agrega los handlers de todas las features
@@ -41,7 +46,7 @@ src/
 │   └── server.ts        # setupServer (tests en Node)
 ├── test/
 │   ├── setup.ts         # jest-dom, cleanup y ciclo de vida del server MSW
-│   └── test-utils.tsx   # renderWithProviders (+ userEvent) y re-exports de RTL
+│   └── test-utils.tsx   # renderWithProviders (QueryClient + MemoryRouter, + userEvent) y re-exports de RTL
 └── main.tsx
 ```
 
@@ -71,12 +76,36 @@ src/
     como `[mock] GET <url> -> <status>` (nivel *Verbose*/`debug`).
   - El build de producción (`npm run build`) no incluye MSW, Faker ni los handlers.
 
+### Estado y peticiones
+
+- **Estado de servidor** (datos de la API, mutaciones): TanStack Query. El `QueryClient` de la app está en
+  `src/app/queryClient.ts`; en los tests, `renderWithProviders` crea uno nuevo por render, sin reintentos.
+- **Estado de cliente** (sesión, preferencias…): Zustand, con un store por feature en `store/`.
+- **Rutas**: React Router en modo declarativo. La tabla de rutas está en `src/app/App.tsx` y el `BrowserRouter`
+  en `src/main.tsx`, con `basename` igual a la ruta base. `renderWithProviders(ui, { route: '/login' })` fija la
+  ruta inicial en los tests.
+
 ### Añadir una nueva feature
 
 1. Crea `src/features/<nombre>/` con la estructura anterior.
 2. Añade su factory y sus handlers en `mocks/`.
 3. Registra los handlers en `src/mocks/handlers.ts`.
 4. Exporta lo necesario desde `index.ts`.
+
+## Autenticación
+
+- **Usuario de prueba** (API simulada): `test@mail.com` / `Test1234!`.
+- `POST /api/auth/login` devuelve `{ accessToken }`, un JWT falso (`header.payload.fake-signature`) con `sub`,
+  `email`, `iat` y `exp` (una hora de validez), o un 401 si las credenciales no coinciden. El cliente no
+  verifica la firma: solo lee el payload.
+- **Sesión**: `useAuthStore` (`src/features/auth/store/auth.store.ts`) guarda `{ token, email, exp }` en
+  `localStorage` con la clave `lvb-auth`. Fuera de la feature se usa `useUser()`, que devuelve
+  `{ token, email, isExpired }`. `isExpired` se calcula a partir de `exp` en cada render.
+- **Páginas privadas**: se anidan bajo la ruta de layout `RequireAuth` en `src/app/App.tsx`. Sin una sesión
+  vigente, redirige a `/login` y, tras iniciar sesión, vuelve a la página pedida.
+- **Sin conexión**: el login no se envía (ni se reanuda solo al volver la red) y se muestra un aviso.
+- En los tests, `src/test/setup.ts` vacía la sesión y `localStorage` tras cada test. Para empezar con
+  sesión: `useAuthStore.getState().setSession(buildFakeJwt(buildTokenPayload()))`.
 
 ## PWA
 
@@ -115,6 +144,9 @@ desde *Actions → Run workflow*) un build con `--mode demo`:
 
 - `.env.demo` activa los mocks, así que la API se simula en el navegador con datos de Faker.
 - `base` es `/beyblade-valencia/`.
+- GitHub Pages no tiene fallback para SPA, así que el build de demo copia `index.html` como `404.html`
+  (plugin `spaFallback404` en `vite.config.ts`). Así, abrir directamente una URL como
+  `/beyblade-valencia/login` carga la app, aunque Pages responda con estado 404. `404.html` no se precachea.
 
 URL: https://charliecobo.github.io/beyblade-valencia/
 

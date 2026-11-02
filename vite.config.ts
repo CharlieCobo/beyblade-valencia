@@ -1,11 +1,31 @@
 /// <reference types="vitest/config" />
+import { copyFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * GitHub Pages no tiene fallback para SPA: ante una ruta inexistente sirve 404.html.
+ * Al copiar index.html como 404.html, abrir directamente una URL profunda (p. ej. /login) carga la app.
+ */
+function spaFallback404(): Plugin {
+  let outDir = 'dist'
+  return {
+    name: 'spa-fallback-404',
+    apply: 'build',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir)
+    },
+    async closeBundle() {
+      await copyFile(resolve(outDir, 'index.html'), resolve(outDir, '404.html'))
+    },
+  }
 }
 
 // https://vite.dev/config/
@@ -18,6 +38,7 @@ export default defineConfig(({ mode }) => {
     base: mode === 'demo' ? '/beyblade-valencia/' : '/',
     plugins: [
       react(),
+      mode === 'demo' && spaFallback404(),
       VitePWA({
         registerType: 'prompt',
         injectRegister: false,
@@ -43,6 +64,8 @@ export default defineConfig(({ mode }) => {
           // La API nunca pasa por la caché ni por el fallback de navegación
           navigateFallbackDenylist: [new RegExp(`^${escapeRegExp(apiBase)}(/|$)`)],
           cleanupOutdatedCaches: true,
+          // 404.html es una copia de index.html solo para GitHub Pages: no hace falta precachearla
+          globIgnores: ['**/404.html'],
         },
         devOptions: { enabled: false },
       }),
