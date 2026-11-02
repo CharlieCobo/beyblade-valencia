@@ -1,0 +1,8 @@
+dist
+dev-dist
+coverage
+public
+package-lock.json
+# Generados o reescritos por herramientas (CLI de OpenSpec, skills)
+openspec
+.claude

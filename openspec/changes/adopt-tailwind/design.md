@@ -63,7 +63,7 @@ Los componentes escriben `bg-card text-foreground` y no necesitan `dark:` para l
 
 ### 6. Prettier ajustado al estilo actual
 - `.prettierrc.json`: `{ "semi": false, "singleQuote": true, "trailingComma": "all", "printWidth": 120, "plugins": ["prettier-plugin-tailwindcss"], "tailwindStylesheet": "./src/index.css" }`.
-- `.prettierignore`: `dist`, `coverage`, `dev-dist`, `public`, `package-lock.json` y `openspec/changes/archive`.
+- `.prettierignore`: `dist`, `coverage`, `dev-dist`, `public`, `package-lock.json`, `openspec/` y `.claude/`. Los dos últimos los generan o reescriben herramientas (la CLI de OpenSpec al archivar, las skills), y formatearlos haría fallar `format:check` tras cada archivado.
 - Scripts `format` (`prettier --write .`) y `format:check` (`prettier --check .`). CI ejecuta `format:check` después de `lint`.
 - El primer `npm run format` va en un commit propio, sin otros cambios, para que la migración se pueda revisar aparte.
 - oxlint no formatea, así que no hay conflicto con Prettier.

@@ -2,7 +2,7 @@
 
 ## 1. Prettier
 
-- [ ] 1.1 Instalar `prettier` y `prettier-plugin-tailwindcss` como dependencias de desarrollo, crear `.prettierrc.json` y `.prettierignore` (design.md, decisión 6) y añadir los scripts `format` y `format:check`; verificar que `npm run format:check` se ejecuta y lista los archivos a formatear
+- [x] 1.1 Instalar `prettier` y `prettier-plugin-tailwindcss` como dependencias de desarrollo, crear `.prettierrc.json` y `.prettierignore` (design.md, decisión 6) y añadir los scripts `format` y `format:check`; verificar que `npm run format:check` se ejecuta y lista los archivos a formatear
 - [ ] 1.2 Ejecutar `npm run format` y hacer un commit solo con ese formateo; verificar que `npm run format:check`, `npm run lint` y `npm run test:run` pasan
 - [ ] 1.3 Añadir `npm run format:check` al workflow `deploy-demo.yml` después de `lint` y documentar en `README.md` (sección "Formato") los scripts y la ordenación de clases; verificar que el YAML del workflow es válido
 
