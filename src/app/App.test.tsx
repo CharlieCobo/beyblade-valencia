@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { AUTH_STORAGE_KEY, useAuthStore } from '@/features/auth/store/auth.store'
-import { buildFakeJwt, buildTokenPayload } from '@/features/auth/mocks/jwt'
-import { server } from '@/mocks/server'
+import { fakeAuth } from '@/features/auth/mocks/fakeAuthGateway'
+import { TEST_ACCOUNT } from '@/features/auth/mocks/userProfile.factory'
+import { useAuthStore } from '@/features/auth/store/auth.store'
+import { buildBeyblades } from '@/features/beyblades/mocks/beyblade.factory'
+import { fakeBeyblades } from '@/features/beyblades/mocks/fakeBeybladesRepository'
 import { renderWithProviders, screen } from '@/test/test-utils'
 import { App } from './App'
 
@@ -14,65 +16,75 @@ vi.mock('virtual:pwa-register/react', () => ({
   }),
 }))
 
-function startSession() {
-  useAuthStore.getState().setSession(buildFakeJwt(buildTokenPayload()))
+/** Como al abrir la app: la sesión aún no se conoce hasta que responde el servicio de autenticación. */
+function openApp(route = '/') {
+  useAuthStore.setState({ status: 'checking', user: null })
+  return renderWithProviders(<App />, { route })
 }
 
 describe('App', () => {
-  it('sin sesión muestra el login y no pide los beyblades', () => {
-    const requests: string[] = []
-    server.events.on('request:start', ({ request }) => requests.push(request.url))
+  it('sin sesión muestra el login y no pide los beyblades', async () => {
+    const list = vi.spyOn(fakeBeyblades, 'list')
 
-    renderWithProviders(<App />)
+    openApp()
 
-    expect(screen.getByRole('form', { name: 'Iniciar sesión' })).toBeInTheDocument()
-    expect(requests.filter((url) => url.includes('/beyblades'))).toEqual([])
-    server.events.removeAllListeners()
+    expect(await screen.findByRole('form', { name: 'Iniciar sesión' })).toBeInTheDocument()
+    expect(list).not.toHaveBeenCalled()
   })
 
-  it('con una sesión guardada corrupta muestra el login y vacía la sesión guardada', async () => {
-    localStorage.setItem(
-      AUTH_STORAGE_KEY,
-      JSON.stringify({ state: { token: 'abc', email: 'test@mail.com', exp: 'mañana' }, version: 0 }),
-    )
-    await useAuthStore.persist.rehydrate()
+  it('mientras se comprueba la sesión no redirige al login', () => {
+    fakeAuth.startSignedIn()
+    fakeAuth.holdSessionCheck()
 
-    renderWithProviders(<App />)
+    openApp()
 
-    expect(screen.getByRole('form', { name: 'Iniciar sesión' })).toBeInTheDocument()
-    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+    expect(screen.getByRole('status')).toHaveTextContent('Comprobando sesión…')
+    expect(screen.queryByRole('form', { name: 'Iniciar sesión' })).not.toBeInTheDocument()
   })
 
-  it('con sesión muestra el título y la lista de beyblades', async () => {
-    startSession()
+  it('con una sesión recuperada muestra el título y la lista de beyblades', async () => {
+    fakeAuth.startSignedIn()
+    fakeBeyblades.seed(buildBeyblades(6))
 
-    renderWithProviders(<App />)
+    openApp()
 
-    expect(screen.getByRole('heading', { level: 1, name: /beyblade valencia/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /beyblade valencia/i })).toBeInTheDocument()
     expect(await screen.findAllByRole('article')).toHaveLength(6)
   })
 
-  it('una ruta desconocida sin sesión termina en el login', () => {
-    renderWithProviders(<App />, { route: '/no-existe' })
+  it('una ruta desconocida sin sesión termina en el login', async () => {
+    openApp('/no-existe')
 
-    expect(screen.getByRole('form', { name: 'Iniciar sesión' })).toBeInTheDocument()
+    expect(await screen.findByRole('form', { name: 'Iniciar sesión' })).toBeInTheDocument()
   })
 
-  it('el usuario de prueba inicia sesión y ve la lista', async () => {
-    const { user } = renderWithProviders(<App />)
+  it('una cuenta habilitada inicia sesión y ve la lista', async () => {
+    fakeBeyblades.seed(buildBeyblades(2))
+    const { user } = openApp()
 
-    await user.type(screen.getByLabelText(/correo/i), 'test@mail.com')
-    await user.type(screen.getByLabelText(/contraseña/i), 'Test1234!')
+    await user.type(await screen.findByLabelText(/correo/i), TEST_ACCOUNT.email)
+    await user.type(screen.getByLabelText(/contraseña/i), TEST_ACCOUNT.password)
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
     expect(await screen.findByRole('region', { name: /listado de beyblades/i })).toBeInTheDocument()
     expect(screen.queryByRole('form', { name: 'Iniciar sesión' })).not.toBeInTheDocument()
   })
 
-  it('no muestra el aviso de actualización si no hay una versión nueva', async () => {
-    startSession()
+  it('al cerrar sesión vuelve al login y sigue sin sesión', async () => {
+    fakeAuth.startSignedIn()
+    const { user } = openApp()
 
-    renderWithProviders(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Cerrar sesión' }))
+
+    expect(await screen.findByRole('form', { name: 'Iniciar sesión' })).toBeInTheDocument()
+    expect(useAuthStore.getState().status).toBe('signedOut')
+  })
+
+  it('no muestra el aviso de actualización si no hay una versión nueva', async () => {
+    fakeAuth.startSignedIn()
+    fakeBeyblades.seed(buildBeyblades(2))
+
+    openApp()
 
     await screen.findByRole('region', { name: /listado de beyblades/i })
     expect(screen.queryByText(/nueva versión/i)).not.toBeInTheDocument()

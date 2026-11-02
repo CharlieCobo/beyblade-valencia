@@ -1,16 +1,12 @@
-import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { server } from '@/mocks/server'
-import { apiUrl } from '@/shared/api/httpClient'
 import { renderWithProviders, screen } from '@/test/test-utils'
-import { BEYBLADES_PATH } from '../api/beyblades.api'
 import { buildBeyblade } from '../mocks/beyblade.factory'
+import { fakeBeyblades } from '../mocks/fakeBeybladesRepository'
 import { BeybladeList } from './BeybladeList'
 
 describe('BeybladeList', () => {
   it('muestra un estado de carga y después los beyblades', async () => {
-    const beyblades = [buildBeyblade({ name: 'Dragon Storm' }), buildBeyblade({ name: 'Pegasus Blitz' })]
-    server.use(http.get(apiUrl(BEYBLADES_PATH), () => HttpResponse.json(beyblades)))
+    fakeBeyblades.seed([buildBeyblade({ name: 'Dragon Storm' }), buildBeyblade({ name: 'Pegasus Blitz' })])
 
     renderWithProviders(<BeybladeList />)
 
@@ -20,35 +16,28 @@ describe('BeybladeList', () => {
   })
 
   it('muestra un mensaje cuando no hay beyblades', async () => {
-    server.use(http.get(apiUrl(BEYBLADES_PATH), () => HttpResponse.json([])))
-
     renderWithProviders(<BeybladeList />)
 
     expect(await screen.findByText(/todavía no hay beyblades/i)).toBeInTheDocument()
   })
 
-  it('muestra un error si la API falla', async () => {
-    server.use(http.get(apiUrl(BEYBLADES_PATH), () => new HttpResponse(null, { status: 500 })))
+  it('muestra un error si la lectura falla', async () => {
+    fakeBeyblades.failNext(new Error('unavailable'))
 
     renderWithProviders(<BeybladeList />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudieron cargar/i)
   })
 
-  it('usa los handlers por defecto de MSW', async () => {
-    renderWithProviders(<BeybladeList />)
-
-    expect(await screen.findAllByRole('article')).toHaveLength(6)
-  })
-
-  describe('contrato de la API', () => {
+  describe('contrato de los datos almacenados', () => {
     // Datos escritos a mano a propósito: la factory no permite construir beyblades inválidos.
-    const valid = { id: 'b-1', name: 'Pegasus', type: 'attack', blader: 'Gingka', wins: 3 }
+    const valid = { name: 'Pegasus', type: 'attack', blader: 'Gingka', wins: 3 }
 
-    it('muestra el error si un elemento tiene un campo de tipo inesperado', async () => {
-      server.use(
-        http.get(apiUrl(BEYBLADES_PATH), () => HttpResponse.json([valid, { ...valid, id: 'b-2', wins: 'diez' }])),
-      )
+    it('muestra el error si un documento tiene un campo de tipo inesperado', async () => {
+      fakeBeyblades.seedRaw([
+        { id: 'b-1', data: valid },
+        { id: 'b-2', data: { ...valid, wins: 'diez' } },
+      ])
 
       renderWithProviders(<BeybladeList />)
 
@@ -56,17 +45,17 @@ describe('BeybladeList', () => {
       expect(screen.queryByRole('article')).not.toBeInTheDocument()
     })
 
-    it('muestra el error si a un elemento le falta un campo', async () => {
+    it('muestra el error si a un documento le falta un campo', async () => {
       const { name: _name, ...withoutName } = valid
-      server.use(http.get(apiUrl(BEYBLADES_PATH), () => HttpResponse.json([withoutName])))
+      fakeBeyblades.seedRaw([{ id: 'b-1', data: withoutName }])
 
       renderWithProviders(<BeybladeList />)
 
       expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron cargar los beyblades.')
     })
 
-    it('muestra el listado aunque la API añada campos nuevos', async () => {
-      server.use(http.get(apiUrl(BEYBLADES_PATH), () => HttpResponse.json([{ ...valid, image: 'pegasus.png' }])))
+    it('muestra el listado aunque los documentos tengan campos nuevos', async () => {
+      fakeBeyblades.seedRaw([{ id: 'b-1', data: { ...valid, image: 'pegasus.png' } }])
 
       renderWithProviders(<BeybladeList />)
 

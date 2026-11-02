@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import type { LoginRequest } from './auth.schema'
+import type { Credentials } from './auth.schema'
 import { LoginFormSchema, type LoginFormOutput } from './loginForm.schema'
 
 function errors(values: unknown) {
@@ -39,6 +39,6 @@ describe('LoginFormSchema', () => {
   })
 
   it('produce exactamente el cuerpo del contrato de login', () => {
-    expectTypeOf<LoginFormOutput>().toEqualTypeOf<LoginRequest>()
+    expectTypeOf<LoginFormOutput>().toEqualTypeOf<Credentials>()
   })
 })

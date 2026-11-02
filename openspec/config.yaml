@@ -5,8 +5,8 @@ context: |
   All artifacts must be written in es.
   Keep OpenSpec structural headings and SHALL/MUST keywords in English.
 
-  Proyecto: Beyblade Valencia (SPA de frontend, sin backend propio todavía).
-  Stack: React 19, Vite 8, TypeScript 7, Zod 4, React Hook Form 7, Tailwind CSS 4, Vitest 5, Testing Library, MSW 3, Faker, oxlint, Prettier.
+  Proyecto: Beyblade Valencia (PWA de frontend; backend en Firebase: Authentication con correo/contraseña y Firestore).
+  Stack: React 19, Vite 8, TypeScript 7, Firebase 13, Zod 4, React Hook Form 7, Tailwind CSS 4, Vitest 5, Testing Library, Faker, oxlint, Prettier.
   Estilos: utilidades de Tailwind con los tokens del tema (background, foreground, card, accent, danger);
   tema oscuro por defecto (.dark en <html>); lo repetido se extrae a src/shared/ui/.
   Formularios: esquema de Zod + useForm (React Hook Form) + zodResolver + TextField, mode 'onTouched'.
@@ -14,25 +14,32 @@ context: |
   Arquitectura por features (ver README.md):
   - Cada feature vive en src/features/<feature>/ con api/, components/, hooks/,
     mocks/, schemas/ e index.ts como única API pública.
+  - Roles de usuario: ADMIN, MEMBER, JUDGE, en el perfil users/{uid} de Firestore.
   - Una feature no importa de otra salvo por su index.ts; src/shared/ no importa de features/.
   - Alias de importación @/ -> src/.
-  - Las llamadas HTTP usan httpGet/httpPost/apiUrl de src/shared/api/httpClient.ts, siempre con el esquema
-    de Zod de la respuesta (y del cuerpo en httpPost).
+  - Acceso a datos: cada feature define en api/ una interfaz (p. ej. BeybladesRepository, AuthGateway) con
+    una implementación de Firebase cargada con import() dinámico y un setX()/resetX() para sustituirla.
+    Firebase se inicializa en src/shared/firebase/app.ts.
+  - Lo leído de Firestore se valida con parseContract (src/shared/contracts/) y su esquema de Zod.
   - Contratos: esquemas de Zod en features/<feature>/schemas/ como fuente única de verdad; los tipos se
-    infieren con z.infer. Respuestas con z.object; cuerpos enviados y configuración con z.strictObject.
+    infieren con z.infer. Documentos leídos con z.object; datos enviados y configuración con z.strictObject.
+  - Seguridad: firestore.rules es el backend; toda colección nueva necesita reglas.
 
   Mocks y tests:
   - Cada entidad tiene una factory buildX(overrides) con Faker en features/<feature>/mocks/, que devuelve
     datos validados por su esquema.
-  - Cada endpoint tiene un handler de MSW en features/<feature>/mocks/ registrado en src/mocks/handlers.ts.
+  - Cada interfaz de acceso a datos tiene un fake en memoria en features/<feature>/mocks/ que
+    src/test/setup.ts instala y reinicia antes de cada test; los tests nunca cargan el SDK de Firebase.
   - Tests colocados junto al código (*.test.ts[x]); se renderiza con renderWithProviders de @/test/test-utils.
-  - MSW falla ante peticiones no mockeadas; los casos específicos usan server.use(...).
+  - Los casos específicos manipulan el fake (seed, seedRaw, failNext...).
+  - Las reglas de Firestore se prueban con el emulador en firebase/*.test.ts (npm run test:rules).
   - Hay que cubrir los estados de carga, vacío, error y éxito de cada vista que pide datos.
 
 rules:
   tasks:
-    - Incluir tareas para la factory de Faker, los handlers de MSW y los tests de cada endpoint o componente nuevo.
-    - Terminar con una tarea de verificación con npm run lint, npm run typecheck y npm run test:run.
+    - Incluir tareas para la factory de Faker, el fake en memoria y los tests de cada acceso a datos o componente nuevo.
+    - Incluir tareas para las reglas de Firestore y sus tests con el emulador cuando se añada o cambie una colección.
+    - Terminar con una tarea de verificación con npm run lint, npm run typecheck, npm run test:run y npm run test:rules.
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.

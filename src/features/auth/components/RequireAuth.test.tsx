@@ -1,7 +1,6 @@
 import { Route, Routes, useLocation } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { renderWithProviders, screen } from '@/test/test-utils'
-import { buildFakeJwt, buildTokenPayload } from '../mocks/jwt'
 import { useAuthStore } from '../store/auth.store'
 import { RequireAuth } from './RequireAuth'
 
@@ -31,17 +30,18 @@ describe('RequireAuth', () => {
     expect(screen.queryByText('contenido privado')).not.toBeInTheDocument()
   })
 
-  it('con una sesión caducada redirige a /login', () => {
-    const iat = Math.floor(Date.now() / 1000) - 7200
-    useAuthStore.getState().setSession(buildFakeJwt(buildTokenPayload({ iat, exp: iat + 3600 })))
+  it('mientras se comprueba la sesión espera sin redirigir', () => {
+    useAuthStore.setState({ status: 'checking', user: null })
 
     renderGuarded('/privada')
 
-    expect(screen.getByText('login desde /privada')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Comprobando sesión…')
+    expect(screen.queryByText(/login desde/)).not.toBeInTheDocument()
+    expect(screen.queryByText('contenido privado')).not.toBeInTheDocument()
   })
 
-  it('con una sesión vigente muestra la ruta hija', () => {
-    useAuthStore.getState().setSession(buildFakeJwt(buildTokenPayload()))
+  it('con sesión muestra la ruta hija', () => {
+    useAuthStore.getState().setSignedIn({ uid: 'u1', email: 'a@b.es', role: 'MEMBER' })
 
     renderGuarded('/privada')
 

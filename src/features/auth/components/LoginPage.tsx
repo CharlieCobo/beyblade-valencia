@@ -1,6 +1,7 @@
 import { Navigate, useLocation, type Location } from 'react-router'
 import { useUser } from '../hooks/useUser'
 import { LoginForm } from './LoginForm'
+import { SessionCheck } from './SessionCheck'
 
 interface LoginLocationState {
   from?: Location
@@ -14,11 +15,12 @@ function redirectTarget(state: unknown): string {
 }
 
 export function LoginPage() {
-  const { isExpired } = useUser()
+  const { status } = useUser()
   const location = useLocation()
 
-  // Con sesión vigente (ya identificado o recién iniciada) se vuelve a la página pedida o a /.
-  if (!isExpired) return <Navigate to={redirectTarget(location.state)} replace />
+  if (status === 'checking') return <SessionCheck />
+  // Con sesión (ya identificado o recién iniciada) se vuelve a la página pedida o a /.
+  if (status === 'signedIn') return <Navigate to={redirectTarget(location.state)} replace />
 
   return (
     <main className="grid min-h-dvh place-items-center px-4 py-8">

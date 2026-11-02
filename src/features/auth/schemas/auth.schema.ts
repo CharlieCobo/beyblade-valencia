@@ -1,43 +1,35 @@
 import { z } from 'zod'
-import { decodeTokenPayload } from '../lib/jwt'
 
-export { TokenPayloadSchema, type TokenPayload } from './token.schema'
-
-/** Cuerpo de POST /auth/login. Estricto: un campo de más es un bug nuestro. */
-export const LoginRequestSchema = z.strictObject({
+/** Credenciales del login. Estricto: un campo de más es un bug nuestro. */
+export const CredentialsSchema = z.strictObject({
   email: z.email(),
   password: z.string().min(1),
 })
 
-function isDecodableToken(token: string): boolean {
-  try {
-    decodeTokenPayload(token)
-    return true
-  } catch {
-    return false
-  }
+export const RoleSchema = z.enum(['ADMIN', 'MEMBER', 'JUDGE'])
+
+/**
+ * Perfil almacenado en `users/{uid}`. z.object: los campos que la app no usa (email, displayName…) se ignoran.
+ * Sin perfil válido, la cuenta no está habilitada.
+ */
+export const UserProfileSchema = z.object({
+  role: RoleSchema,
+})
+
+/** Último perfil validado, guardado en el navegador para arrancar sin conexión. */
+export const CachedProfileSchema = z.object({
+  uid: z.string().min(1),
+  role: RoleSchema,
+})
+
+export type Credentials = z.infer<typeof CredentialsSchema>
+export type Role = z.infer<typeof RoleSchema>
+export type UserProfile = z.infer<typeof UserProfileSchema>
+export type CachedProfile = z.infer<typeof CachedProfileSchema>
+
+/** Usuario con sesión iniciada y cuenta habilitada. */
+export interface SessionUser {
+  uid: string
+  email: string
+  role: Role
 }
-
-/** Respuesta de POST /auth/login. El token debe tener forma de JWT y el payload esperado. */
-export const LoginResponseSchema = z.object({
-  accessToken: z.string().refine(isDecodableToken, 'El token no tiene forma de JWT o le faltan campos del payload'),
-})
-
-/** Sesión guardada en el navegador. Vacía: los tres campos a null. `exp` en segundos. */
-export const SessionSchema = z.object({
-  token: z.string().nullable(),
-  email: z.string().nullable(),
-  exp: z.number().nullable(),
-})
-
-/** Usuario de la API simulada (solo mocks). */
-export const AuthUserSchema = z.object({
-  id: z.string().min(1),
-  email: z.email(),
-  password: z.string().min(1),
-})
-
-export type LoginRequest = z.infer<typeof LoginRequestSchema>
-export type LoginResponse = z.infer<typeof LoginResponseSchema>
-export type Session = z.infer<typeof SessionSchema>
-export type AuthUser = z.infer<typeof AuthUserSchema>

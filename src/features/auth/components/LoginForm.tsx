@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { HttpError } from '@/shared/api/httpClient'
 import { Button } from '@/shared/ui/Button'
 import { TextField } from '@/shared/ui/TextField'
+import { AccountNotEnabledError, InvalidCredentialsError } from '../api/errors'
 import { useLogin } from '../hooks/useLogin'
 import { LoginFormSchema, type LoginFormOutput, type LoginFormValues } from '../schemas/loginForm.schema'
 
@@ -12,7 +12,8 @@ interface LoginFormProps {
 }
 
 function errorMessage(error: Error): string {
-  if (error instanceof HttpError && error.status === 401) return 'Correo o contraseña incorrectos'
+  if (error instanceof InvalidCredentialsError) return 'Correo o contraseña incorrectos'
+  if (error instanceof AccountNotEnabledError) return 'Tu cuenta no está habilitada. Contacta con un administrador.'
   return 'No se pudo iniciar sesión. Inténtalo de nuevo.'
 }
 

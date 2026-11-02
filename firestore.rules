@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// Reglas de acceso a Firestore: son el "backend" de la aplicación (ver openspec/specs/access-control).
+// Cualquiera con la apiKey pública puede crear una cuenta de Firebase Auth, así que leer datos exige
+// un perfil en users/{uid} con rol válido, no solo una sesión.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profilePath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasRole() {
+      return signedIn()
+        && exists(profilePath())
+        && get(profilePath()).data.role in ['ADMIN', 'MEMBER', 'JUDGE'];
+    }
+
+    function isAdmin() {
+      return hasRole() && get(profilePath()).data.role == 'ADMIN';
+    }
+
+    match /users/{uid} {
+      // Cada usuario lee su propio perfil (la app lo necesita para conocer su rol); un ADMIN, todos.
+      allow read: if (signedIn() && request.auth.uid == uid) || isAdmin();
+      // Solo un ADMIN crea, modifica o borra perfiles (incluido el propio: nadie se asciende solo).
+      allow write: if isAdmin()
+        && (request.resource == null || request.resource.data.role in ['ADMIN', 'MEMBER', 'JUDGE']);
+    }
+
+    match /beyblades/{beybladeId} {
+      allow read: if hasRole();
+      allow write: if isAdmin();
+    }
+
+    // Cualquier otra colección queda cerrada.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

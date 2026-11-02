@@ -1,22 +1,23 @@
 # Beyblade Valencia
 
-PWA con React 19 + Vite + TypeScript, Tailwind CSS, Zod, React Hook Form, React Router, TanStack Query y Zustand, con Vitest y Testing Library para tests, y MSW + Faker para mocks.
+PWA con React 19 + Vite + TypeScript, Tailwind CSS, Zod, React Hook Form, React Router, TanStack Query y Zustand, con Firebase (Authentication + Firestore) como backend, y Vitest, Testing Library y Faker para tests.
 
 ## Scripts
 
-| Comando                 | Descripción                                              |
-| ----------------------- | -------------------------------------------------------- |
-| `npm run dev`           | Servidor de desarrollo (con la API simulada por defecto) |
-| `npm run build`         | Type-check + build de producción                         |
-| `npm run build:demo`    | Build de demo con MSW activo (GitHub Pages)              |
-| `npm run preview`       | Sirve el build                                           |
-| `npm run lint`          | Lint con oxlint                                          |
-| `npm run typecheck`     | Sólo comprobación de tipos                               |
-| `npm run format`        | Formatea el código con Prettier                          |
-| `npm run format:check`  | Comprueba el formato sin escribir (CI)                   |
-| `npm test`              | Vitest en modo watch                                     |
-| `npm run test:run`      | Vitest una sola vez (CI)                                 |
-| `npm run test:coverage` | Tests con cobertura (v8)                                 |
+| Comando                 | Descripción                                                       |
+| ----------------------- | ----------------------------------------------------------------- |
+| `npm run dev`           | Servidor de desarrollo (contra el proyecto de Firebase de `.env`) |
+| `npm run build`         | Type-check + build de producción                                  |
+| `npm run build:demo`    | Build de demo para GitHub Pages                                   |
+| `npm run preview`       | Sirve el build                                                    |
+| `npm run lint`          | Lint con oxlint                                                   |
+| `npm run typecheck`     | Sólo comprobación de tipos                                        |
+| `npm run format`        | Formatea el código con Prettier                                   |
+| `npm run format:check`  | Comprueba el formato sin escribir (CI)                            |
+| `npm test`              | Vitest en modo watch                                              |
+| `npm run test:run`      | Vitest una sola vez (CI)                                          |
+| `npm run test:coverage` | Tests con cobertura (v8)                                          |
+| `npm run test:rules`    | Tests de las reglas de Firestore con el emulador (necesita Java)  |
 
 ### Formato
 
@@ -37,27 +38,28 @@ src/
 ├── features/
 │   ├── auth/            # Login, sesión (useUser) y protección de rutas (RequireAuth)
 │   └── beyblades/       # Una feature = un dominio
-│       ├── api/         # Llamadas HTTP de la feature
+│       ├── api/         # Acceso a datos: interfaz (puerto), implementación de Firebase y lógica pura
 │       ├── components/  # Componentes (+ tests colocados *.test.tsx)
 │       ├── hooks/       # Lógica de estado / data fetching
 │       ├── lib/         # (opcional) Utilidades puras de la feature
-│       ├── mocks/       # Factories (Faker) y handlers (MSW) de la feature
+│       ├── mocks/       # Factories (Faker) e implementaciones en memoria (fakes) para los tests
 │       ├── store/       # (opcional) Estado de cliente con Zustand
 │       ├── schemas/     # Esquemas de Zod (contratos) y tipos inferidos de ellos
 │       └── index.ts     # API pública: lo único que importa el resto de la app
 ├── shared/              # Código reutilizable sin dominio
-│   ├── api/             # Cliente HTTP validado (httpGet, httpPost, apiUrl, HttpError, ContractError)
 │   ├── config/          # Variables de entorno validadas (env, parseEnv)
+│   ├── contracts/       # ContractError y parseContract (validación de datos leídos)
+│   ├── firebase/        # Inicialización perezosa de Firebase (app, Auth, Firestore)
 │   └── ui/              # Componentes de interfaz sin dominio (Button, TextField)
-├── mocks/               # Ensamblado de MSW
-│   ├── handlers.ts      # Agrega los handlers de todas las features
-│   ├── transport.ts     # mockTransport: mocks en el navegador (desarrollo y demo)
-│   └── server.ts        # setupServer (tests en Node)
 ├── index.css            # Tailwind, tokens del tema y estilos base
 ├── test/
-│   ├── setup.ts         # jest-dom, cleanup y ciclo de vida del server MSW
+│   ├── setup.ts         # jest-dom, cleanup e instalación de los fakes antes de cada test
 │   └── test-utils.tsx   # renderWithProviders (QueryClient + MemoryRouter, + userEvent) y re-exports de RTL
 └── main.tsx
+
+firebase/                # Tests de las reglas de Firestore (emulador)
+firestore.rules          # Reglas de acceso: el "backend" de la app
+firebase.json            # Configuración de Firebase CLI y del emulador
 ```
 
 ### Reglas
@@ -97,30 +99,64 @@ La app es **siempre oscura**, sea cual sea la preferencia del sistema. `index.ht
 
 Cuando unas mismas clases se repiten en dos sitios, se extraen a un componente en `src/shared/ui/` en vez de crear una clase CSS con `@apply`. Por ahora existen `Button` (variantes `primary` y `secondary`; por defecto `type="button"`) y `TextField` (ver [Formularios](#formularios)).
 
-## Mocks
+## Firebase
 
-- **Faker**: cada entidad tiene una factory `buildX(overrides)` en `features/<feature>/mocks/`. Devuelve
-  `XSchema.parse(...)`, así que un mock no puede salirse del contrato y un override inválido falla en el acto.
-  Los tests que necesitan datos inválidos los escriben a mano a propósito.
-- **MSW**: los handlers por defecto viven en la feature y se registran en `src/mocks/handlers.ts`.
-  - En tests, `server` se arranca en `src/test/setup.ts` con `onUnhandledFrame: 'error'`, así que cualquier petición no mockeada hace fallar el test.
-  - Para un caso concreto, sobrescribe con `server.use(...)` (se resetea tras cada test):
+La app usa **Firebase Authentication** (correo y contraseña) y **Firestore**. No hay servidor propio: la
+seguridad la dan las reglas de `firestore.rules`.
 
-    ```ts
-    server.use(http.get(apiUrl(BEYBLADES_PATH), () => new HttpResponse(null, { status: 500 })))
-    ```
-- **En el navegador (desarrollo y demo)** no hay service worker de MSW: con `VITE_API_MOCKING=enabled`
-  (ver `.env.development` y `.env.demo`), `src/main.tsx` inyecta `mockTransport` (`src/mocks/transport.ts`)
-  en el cliente HTTP con `setHttpTransport`. Ese transporte resuelve cada petición con `getResponse` de MSW
-  contra los mismos handlers, y si ninguno coincide la envía a la red. Así el único service worker es el de la PWA.
-  - Solo se simulan las peticiones que pasan por `src/shared/api/httpClient.ts`.
-  - Las peticiones simuladas no aparecen en la pestaña Network; en desarrollo se registran en la consola
-    como `[mock] GET <url> -> <status>` (nivel _Verbose_/`debug`).
-  - El build de producción (`npm run build`) no incluye MSW, Faker ni los handlers.
+### Datos
+
+```
+users/{uid}      { role: 'ADMIN' | 'MEMBER' | 'JUDGE' }   perfil de cada cuenta
+beyblades/{id}   { name, type, blader, wins }              el id es el del documento
+```
+
+- Una cuenta sin perfil en `users/{uid}`, o con un rol inválido, **no está habilitada**: la app cierra su
+  sesión y muestra "Tu cuenta no está habilitada…".
+- Reglas: leer datos exige sesión **y** perfil con rol válido; solo `ADMIN` escribe beyblades y gestiona
+  perfiles; cada usuario lee su propio perfil; el resto de colecciones están cerradas.
+
+### Configuración
+
+Las variables `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID` y
+`VITE_FIREBASE_APP_ID` son obligatorias y están en `.env` (versionado: la configuración web de Firebase es
+pública). `.env.example` documenta de dónde sale cada una. Desarrollo, demo y producción usan el mismo proyecto.
+
+### Preparar el proyecto de Firebase
+
+1. Crear el proyecto y una app web; copiar su configuración a `.env`.
+2. **Authentication**: activar el proveedor _Correo electrónico/contraseña_ y desactivar el alta de cuentas
+   por los clientes (_Settings → User actions_), porque la app no tiene registro.
+3. **Authentication → Settings → Dominios autorizados**: añadir `charliecobo.github.io` (demo) además de `localhost`.
+4. **Firestore**: crear la base de datos y desplegar las reglas: `npx firebase deploy --only firestore:rules --project <id>`.
+5. Crear las cuentas en Authentication y, para cada una, su documento `users/{uid}` con su `role`
+   (al menos un `ADMIN`). Para probar a mano, una cuenta `MEMBER` `test@mail.com` / `Test1234!`.
+
+### Tests
+
+- **Sin Firebase**: cada feature define una interfaz para su acceso a datos (`AuthGateway`,
+  `BeybladesRepository`) con dos implementaciones: la de Firebase (cargada con `import()` dinámico, en un
+  chunk aparte) y una en memoria en `mocks/` (`fakeAuth`, `fakeBeyblades`). `src/test/setup.ts` instala y
+  reinicia los fakes antes de cada test, así que ningún test de componentes carga el SDK ni usa la red.
+- Para un caso concreto se manipula el fake:
+
+  ```ts
+  fakeBeyblades.seed([buildBeyblade({ name: 'Pegasus' })])
+  fakeBeyblades.seedRaw([{ id: 'b-1', data: { name: 'Pegasus', wins: 'diez' } }]) // fuera de contrato
+  fakeBeyblades.failNext(new Error('unavailable'))
+  fakeAuth.addAccount({ uid: 'u2', email: 'sin@perfil.es', password: 'x' }) // sin perfil
+  fakeAuth.startSignedIn() // arranca con la sesión de TEST_ACCOUNT
+  ```
+
+- **Factories con Faker**: cada entidad tiene `buildX(overrides)` en `features/<feature>/mocks/`. Devuelve
+  `XSchema.parse(...)`, así que no puede salirse del contrato. Los tests que necesitan datos inválidos los
+  escriben a mano a propósito.
+- **Reglas**: `npm run test:rules` arranca el emulador de Firestore (proyecto `demo-lvb`, sin conexión a
+  Firebase) y ejecuta `firebase/firestore.rules.test.ts`. Necesita Java 21; CI lo ejecuta en cada PR.
 
 ### Estado y peticiones
 
-- **Estado de servidor** (datos de la API, mutaciones): TanStack Query. El `QueryClient` de la app está en
+- **Estado de servidor** (datos almacenados, mutaciones): TanStack Query. El `QueryClient` de la app está en
   `src/app/queryClient.ts`; en los tests, `renderWithProviders` crea uno nuevo por render, sin reintentos.
 - **Estado de cliente** (sesión, preferencias…): Zustand, con un store por feature en `store/`.
 - **Rutas**: React Router en modo declarativo. La tabla de rutas está en `src/app/App.tsx` y el `BrowserRouter`
@@ -130,10 +166,12 @@ Cuando unas mismas clases se repiten en dos sitios, se extraen a un componente e
 ### Añadir una nueva feature
 
 1. Crea `src/features/<nombre>/` con la estructura anterior.
-2. Define sus contratos en `schemas/` y pásalos a `httpGet`/`httpPost` desde `api/`.
-3. Añade su factory y sus handlers en `mocks/`.
-4. Registra los handlers en `src/mocks/handlers.ts`.
-5. Exporta lo necesario desde `index.ts`.
+2. Define sus contratos en `schemas/`.
+3. Define en `api/` la interfaz de acceso a datos, su implementación de Firebase (con `import()` dinámico) y
+   la función que valida lo leído con `parseContract`.
+4. Añade su factory y su fake en `mocks/`, e instala el fake en `src/test/setup.ts`.
+5. Añade sus reglas en `firestore.rules` con sus tests en `firebase/`.
+6. Exporta lo necesario desde `index.ts`.
 
 ## Contratos (Zod)
 
@@ -141,18 +179,18 @@ Los esquemas de Zod son la **única fuente de verdad** de los datos: viven en `f
 
 Ningún dato externo entra en la app sin pasar por un esquema. El rigor depende de la dirección del dato:
 
-| Dato                     | Constructor                  | Por qué                                                      |
-| ------------------------ | ---------------------------- | ------------------------------------------------------------ |
-| Respuestas de la API     | `z.object` (descarta extras) | Que el backend añada un campo no debe romper la app          |
-| Cuerpos que enviamos     | `z.strictObject`             | Un campo de más es un bug nuestro                            |
-| Configuración `VITE_*`   | `z.strictObject`             | Detecta erratas en el nombre de las variables                |
-| Sesión en `localStorage` | `z.object`                   | La escribe la propia app; tolera campos de versiones futuras |
-| Payload del JWT          | `z.object`                   | Los JWT reales traen claims extra (`iss`, `aud`…)            |
+| Dato                             | Constructor                  | Por qué                                                      |
+| -------------------------------- | ---------------------------- | ------------------------------------------------------------ |
+| Documentos de Firestore          | `z.object` (descarta extras) | Que un documento tenga un campo nuevo no debe romper la app  |
+| Credenciales del login           | `z.strictObject`             | Un campo de más es un bug nuestro                            |
+| Configuración `VITE_*`           | `z.strictObject`             | Detecta erratas en el nombre de las variables                |
+| Perfil en caché (`localStorage`) | `z.object`                   | La escribe la propia app; tolera campos de versiones futuras |
 
-- **Cliente HTTP**: `httpGet(path, responseSchema)` y `httpPost(path, body, { request, response })` devuelven datos ya validados y tipados por el esquema. `httpPost` valida el cuerpo antes de enviarlo: si no cumple, no hay petición.
-- **`ContractError`**: se lanza cuando lo enviado o lo recibido no cumple el contrato (con `method`, `path`, `direction` e `issues`). Es distinto de `HttpError`, así que las vistas lo tratan como su error inesperado. En desarrollo se registra en la consola con el campo exacto que falla.
-- **Configuración**: `src/shared/config/env.ts` valida las variables `VITE_*` al arrancar. Un valor no permitido o una variable desconocida impiden arrancar con un error que nombra la variable.
-- **Sesión guardada**: si lo guardado en `localStorage` no cumple `SessionSchema`, se descarta y se borra, y el usuario queda sin sesión.
+- **`parseContract(schema, data, source)`** (`src/shared/contracts/`): valida los datos leídos. Si no cumplen,
+  lanza un `ContractError` con `source` (p. ej. `beyblades/abc123`) e `issues`, y las vistas lo tratan como
+  su error inesperado. En desarrollo se registra en la consola con el campo exacto que falla.
+- **Configuración**: `src/shared/config/env.ts` valida las variables `VITE_*` al arrancar. Una variable
+  ausente, vacía o desconocida impide arrancar con un error que nombra la variable.
 
 ## Formularios
 
@@ -176,28 +214,31 @@ const {
 ```
 
 - **Esquema del formulario** en `features/<feature>/schemas/<nombre>Form.schema.ts`, con los mensajes en español y las transformaciones de entrada (p. ej. `trim` del correo). Los valores del formulario se tipan con `z.input` y lo que entrega `handleSubmit` con `z.output`, ya transformado.
-- **Separado del contrato de la API**: el esquema del formulario no es el de la petición (`LoginRequestSchema`). Un test de tipos (`expectTypeOf<LoginFormOutput>().toEqualTypeOf<LoginRequest>()`) impide que se desvíen, y `httpPost` sigue validando el cuerpo al enviarlo.
+- **Separado del contrato**: el esquema del formulario no es el de las credenciales (`CredentialsSchema`). Un test de tipos (`expectTypeOf<LoginFormOutput>().toEqualTypeOf<Credentials>()`) impide que se desvíen.
 - **`mode: 'onTouched'`**: el error de un campo aparece al salir de él o al enviar, nunca mientras se escribe por primera vez. Una vez visible, se revalida al escribir y desaparece en cuanto el valor es válido.
 - **Foco**: al enviar con errores, el foco va al primer campo inválido. React Hook Form sigue el orden de `register`, así que **registra los campos en el orden visual**.
 - **`noValidate`** en el `<form>` desactiva los avisos nativos del navegador. Los inputs conservan su `type` y `autoComplete` (teclado móvil y autocompletado).
 - **`TextField`** (`src/shared/ui/`) pinta la etiqueta, el input y el error. Con error marca el campo con `aria-invalid` y lo asocia al mensaje con `aria-describedby`. Recibe la `ref` de `register` como una prop más (React 19); sin ella no funciona el foco.
-- El envío, el estado pendiente y los errores de la API no son de React Hook Form: siguen en el hook de la feature (p. ej. `useLogin`).
+- El envío, el estado pendiente y los errores del servicio no son de React Hook Form: siguen en el hook de la feature (p. ej. `useLogin`).
 - En los tests, la validación es asíncrona: espera los mensajes con `findBy*`.
 
 ## Autenticación
 
-- **Usuario de prueba** (API simulada): `test@mail.com` / `Test1234!`.
-- `POST /api/auth/login` devuelve `{ accessToken }`, un JWT falso (`header.payload.fake-signature`) con `sub`,
-  `email`, `iat` y `exp` (una hora de validez), o un 401 si las credenciales no coinciden. El cliente no
-  verifica la firma: solo lee el payload.
-- **Sesión**: `useAuthStore` (`src/features/auth/store/auth.store.ts`) guarda `{ token, email, exp }` en
-  `localStorage` con la clave `lvb-auth`. Fuera de la feature se usa `useUser()`, que devuelve
-  `{ token, email, isExpired }`. `isExpired` se calcula a partir de `exp` en cada render.
-- **Páginas privadas**: se anidan bajo la ruta de layout `RequireAuth` en `src/app/App.tsx`. Sin una sesión
-  vigente, redirige a `/login` y, tras iniciar sesión, vuelve a la página pedida.
-- **Sin conexión**: el login no se envía (ni se reanuda solo al volver la red) y se muestra un aviso.
-- En los tests, `src/test/setup.ts` vacía la sesión y `localStorage` tras cada test. Para empezar con
-  sesión: `useAuthStore.getState().setSession(buildFakeJwt(buildTokenPayload()))`.
+- **Login** con correo y contraseña contra Firebase Authentication. Los errores del SDK se traducen a errores
+  de dominio (`InvalidCredentialsError`, `AccountNotEnabledError`; el resto, error inesperado) en
+  `features/auth/api/session.ts`.
+- **Sesión**: la guarda y renueva Firebase; dura hasta que el usuario pulsa "Cerrar sesión" (en `AppLayout`).
+  `useAuthSessionSync()` (montado en `App`) refleja el estado en `useAuthStore`, que no persiste nada. Fuera
+  de la feature se usa `useUser()`, que devuelve `{ status, email, role }` con `status` igual a
+  `'checking' | 'signedIn' | 'signedOut'`.
+- **Comprobando sesión**: al arrancar, mientras Firebase no responde, `RequireAuth` y `LoginPage` muestran
+  "Comprobando sesión…" en lugar de redirigir.
+- **Páginas privadas**: se anidan bajo la ruta de layout `RequireAuth` en `src/app/App.tsx`. Sin sesión,
+  redirige a `/login` y, tras iniciar sesión, vuelve a la página pedida.
+- **Sin conexión**: el login no se envía (ni se reanuda solo al volver la red) y se muestra un aviso. Al
+  arrancar sin red se usa el último perfil validado (`lvb-profile` en `localStorage`) de esa misma cuenta.
+- En los tests, `src/test/setup.ts` empieza cada test sin sesión. Para empezar con sesión en la app completa:
+  `fakeAuth.startSignedIn()`; para un componente aislado: `useAuthStore.getState().setSignedIn(user)`.
 
 ## PWA
 
@@ -207,8 +248,8 @@ Configurada con [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) en `vite.
   (`/` o `/beyblade-valencia/` en la demo). Nombre, colores e iconos están en la opción `manifest`.
 - **Sin conexión**: el service worker precachea el esqueleto de la app (HTML, JS, CSS, iconos),
   que arranca sin red después de la primera visita.
-- **La API nunca se cachea**: no hay `runtimeCaching`, y las rutas bajo `VITE_API_BASE_URL` quedan
-  fuera del fallback de navegación.
+- **El backend nunca se cachea**: no hay `runtimeCaching`, así que las peticiones a Firebase (otros
+  orígenes) van siempre a la red. El SDK de Firebase sí se precachea, en su propio chunk.
 - **Actualizaciones**: con `registerType: 'prompt'`, cuando hay una versión nueva aparece el aviso
   "Hay una nueva versión disponible" (`src/app/pwa/UpdatePrompt.tsx`). La app solo se recarga si
   el usuario pulsa "Actualizar".
@@ -231,10 +272,10 @@ Puedes comprobarlo en <https://maskable.app/>.
 
 ## Demo en GitHub Pages
 
-El workflow `.github/workflows/deploy-demo.yml` publica en cada push a `master` (o manualmente
-desde _Actions → Run workflow_) un build con `--mode demo`:
+El workflow `.github/workflows/deploy-demo.yml` comprueba cada PR (lint, formato, tests y tests de reglas) y
+publica en cada push a `master` (o manualmente desde _Actions → Run workflow_) un build con `--mode demo`:
 
-- `.env.demo` activa los mocks, así que la API se simula en el navegador con datos de Faker.
+- Usa el mismo proyecto de Firebase que desarrollo (`.env`), así que muestra datos reales.
 - `base` es `/beyblade-valencia/`.
 - GitHub Pages no tiene fallback para SPA, así que el build de demo copia `index.html` como `404.html`
   (plugin `spaFallback404` en `vite.config.ts`). Así, abrir directamente una URL como
@@ -250,7 +291,7 @@ Para retirar la demo, borra el workflow, la rama `gh-pages` y desactiva Pages.
 
 El proyecto usa [OpenSpec](https://github.com/Fission-AI/OpenSpec) (spec-driven development) integrado con Claude Code.
 Las specs viven en `openspec/specs/`, los cambios en curso en `openspec/changes/` y el contexto del
-proyecto (stack, arquitectura, convenciones de mocks y tests) en `openspec/config.yaml`.
+proyecto (stack, arquitectura, convenciones de datos y tests) en `openspec/config.yaml`.
 
 Flujo en Claude Code:
 

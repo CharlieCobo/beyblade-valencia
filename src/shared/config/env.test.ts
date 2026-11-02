@@ -1,32 +1,43 @@
 import { describe, expect, it } from 'vitest'
 import { parseEnv } from './env'
 
+const VALID = {
+  VITE_FIREBASE_API_KEY: 'AIza-clave',
+  VITE_FIREBASE_AUTH_DOMAIN: 'lvb.firebaseapp.com',
+  VITE_FIREBASE_PROJECT_ID: 'lvb',
+  VITE_FIREBASE_APP_ID: '1:123:web:abc',
+}
+
 describe('parseEnv', () => {
-  it('lee las variables válidas', () => {
-    expect(parseEnv({ VITE_API_BASE_URL: 'https://api.lvb.es', VITE_API_MOCKING: 'enabled' })).toEqual({
-      apiBaseUrl: 'https://api.lvb.es',
-      apiMocking: 'enabled',
+  it('lee una configuración válida', () => {
+    expect(parseEnv(VALID)).toEqual({
+      firebase: { apiKey: 'AIza-clave', authDomain: 'lvb.firebaseapp.com', projectId: 'lvb', appId: '1:123:web:abc' },
     })
   })
 
-  it('usa los valores por defecto si no hay variables', () => {
-    expect(parseEnv({})).toEqual({ apiBaseUrl: '/api', apiMocking: 'disabled' })
-  })
-
   it('ignora las variables propias de Vite que no empiezan por VITE_', () => {
-    expect(parseEnv({ MODE: 'test', DEV: true, BASE_URL: '/' })).toEqual({ apiBaseUrl: '/api', apiMocking: 'disabled' })
+    expect(() => parseEnv({ ...VALID, MODE: 'test', DEV: true, BASE_URL: '/' })).not.toThrow()
   })
 
-  it('rechaza un valor no permitido nombrando la variable y los valores válidos', () => {
-    expect(() => parseEnv({ VITE_API_MOCKING: 'yes' })).toThrow(/VITE_API_MOCKING/)
-    expect(() => parseEnv({ VITE_API_MOCKING: 'yes' })).toThrow(/"enabled"\|"disabled"/)
+  it('rechaza una variable obligatoria ausente nombrándola', () => {
+    const { VITE_FIREBASE_PROJECT_ID: _omitted, ...rest } = VALID
+    expect(() => parseEnv(rest)).toThrow(/VITE_FIREBASE_PROJECT_ID/)
+  })
+
+  it('rechaza una configuración sin ninguna variable', () => {
+    expect(() => parseEnv({})).toThrow(/VITE_FIREBASE_API_KEY/)
+  })
+
+  it('rechaza una variable vacía nombrándola', () => {
+    expect(() => parseEnv({ ...VALID, VITE_FIREBASE_AUTH_DOMAIN: '' })).toThrow(/VITE_FIREBASE_AUTH_DOMAIN/)
+    expect(() => parseEnv({ ...VALID, VITE_FIREBASE_AUTH_DOMAIN: '   ' })).toThrow(/VITE_FIREBASE_AUTH_DOMAIN/)
   })
 
   it('rechaza una variable desconocida nombrándola', () => {
-    expect(() => parseEnv({ VITE_API_BASEURL: '/api' })).toThrow(/VITE_API_BASEURL/)
+    expect(() => parseEnv({ ...VALID, VITE_FIREBASE_PROJECTID: 'lvb' })).toThrow(/VITE_FIREBASE_PROJECTID/)
   })
 
-  it('rechaza una base de la API que no es una ruta ni una URL', () => {
-    expect(() => parseEnv({ VITE_API_BASE_URL: 'api' })).toThrow(/VITE_API_BASE_URL/)
+  it('rechaza la variable antigua de la API simulada', () => {
+    expect(() => parseEnv({ ...VALID, VITE_API_MOCKING: 'enabled' })).toThrow(/VITE_API_MOCKING/)
   })
 })

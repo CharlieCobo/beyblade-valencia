@@ -75,7 +75,7 @@ Alternativas descartadas:
                                          --> signOut() --> signedOut (+ motivo "no habilitada")
 ```
 
-El store de Zustand deja de persistir (se quita `persist`) y solo guarda `{ status, user, disabledReason }`; lo suscribe un `AuthSessionListener` montado una vez en `main.tsx`/`App`. Al arrancar se borra la clave antigua `lvb-auth` de `localStorage`.
+El store de Zustand deja de persistir (se quita `persist`) y solo guarda `{ status, user }`; lo mantiene al día el hook `useAuthSessionSync()`, montado una vez en `App`. (No hace falta guardar el motivo de un cierre por cuenta no habilitada: el mensaje solo se muestra al intentar iniciar sesión, desde el error de `signIn`.) Al arrancar se borra la clave antigua `lvb-auth` de `localStorage`.
 
 `useUser()` pasa a devolver `{ status: 'checking' | 'signedIn' | 'signedOut', email, role }`; `RequireAuth` y `LoginPage` muestran "Comprobando sesión…" en `checking`. Se eliminan `lib/jwt.ts`, `token.schema.ts`, `LoginResponseSchema`, `SessionSchema` y `isExpired`.
 
@@ -95,11 +95,13 @@ El gateway traduce los códigos de Firebase a errores propios de la feature, par
 
 Desaparecen `HttpError`, `httpClient` y `apiUrl`.
 
-### 6. Contratos con Zod en un `FirestoreDataConverter`
+### 6. Contratos con Zod al leer, comunes a Firebase y a los fakes
 
-`firestoreBeybladesRepository.list()` usa `getDocs(collection(db, 'beyblades').withConverter(beybladeConverter))`. El converter compone `{ id: snapshot.id, ...snapshot.data() }` y lo valida con `BeybladeSchema` (`z.object`, así que los campos extra se ignoran). Si algún documento no cumple, `list()` rechaza con un `ContractError` y no devuelve datos parciales.
+El repositorio devuelve los documentos tal cual (`{ id, data }`) y `getBeyblades()` compone `{ ...data, id }` y lo valida con `BeybladeSchema` (`z.object`, así que los campos extra se ignoran) mediante `parseContract`. Si algún documento no cumple, rechaza con un `ContractError` y no devuelve datos parciales.
 
-`ContractError` se mueve a `src/shared/contracts/ContractError.ts` y cambia `method`/`path`/`direction` por `source` (p. ej. `beyblades/abc123`); sigue usando `z.prettifyError` y se registra en consola en desarrollo.
+Se descartó validar en un `FirestoreDataConverter` (lo que preveía la primera versión de este diseño): la validación quedaría solo en la implementación de Firebase y los tests con el fake no la ejercitarían. Así, los escenarios de `api-contracts` se prueban con la misma función que corre en producción.
+
+`ContractError` se mueve a `src/shared/contracts/ContractError.ts` y cambia `method`/`path`/`direction` por `source` (p. ej. `beyblades/abc123`); `parseContract(schema, data, source)` lo lanza y lo registra en consola en desarrollo.
 
 `useBeyblades` mantiene su forma de estado. Firestore no admite cancelar `getDocs`, así que se ignora el resultado tras desmontar (bandera en el cleanup del efecto) en lugar de `AbortController`.
 
@@ -129,7 +131,7 @@ Cualquier persona con la `apiKey` pública puede crear una cuenta de correo/cont
 
 ### 8. Tests de reglas con el emulador, fuera de `test:run`
 
-`firestore.rules.test.ts` en `firebase/` (fuera de `src/`) con `@firebase/rules-unit-testing`, ejecutado por `npm run test:rules` = `firebase emulators:exec --only firestore "vitest run --config vitest.rules.config.ts"`. Necesita Java; se ejecuta en CI en un paso propio (`ubuntu-latest` trae Java) y no bloquea el bucle local de `npm run test:run`.
+`firestore.rules.test.ts` en `firebase/` (fuera de `src/`) con `@firebase/rules-unit-testing`, ejecutado por `npm run test:rules` = `firebase emulators:exec --only firestore "vitest run --config vitest.rules.config.ts"`. Necesita Java 21 (`actions/setup-java` en CI). Para que el paso se compruebe antes de fusionar, el workflow pasa a ejecutarse también en `pull_request`, y solo publica la demo en `push`/`workflow_dispatch`. No bloquea el bucle local de `npm run test:run`.
 
 ### 9. Configuración
 

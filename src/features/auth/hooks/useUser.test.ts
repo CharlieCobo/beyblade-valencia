@@ -1,47 +1,36 @@
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { buildFakeJwt, buildTokenPayload } from '../mocks/jwt'
+import { describe, expect, it } from 'vitest'
 import { useAuthStore } from '../store/auth.store'
 import { useUser } from './useUser'
 
-const NOW = new Date('2026-11-02T10:00:00Z')
-const nowSeconds = NOW.getTime() / 1000
-
 describe('useUser', () => {
-  afterEach(() => vi.useRealTimers())
-
-  it('sin sesión se considera expirado', () => {
+  it('sin sesión no tiene correo ni rol', () => {
     const { result } = renderHook(() => useUser())
 
-    expect(result.current).toEqual({ token: null, email: null, isExpired: true })
+    expect(result.current).toEqual({ status: 'signedOut', email: null, role: null })
   })
 
-  it('con una sesión vigente devuelve el token y el correo', () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(NOW)
-    const token = buildFakeJwt(buildTokenPayload({ iat: nowSeconds, exp: nowSeconds + 60 }))
-    useAuthStore.getState().setSession(token)
+  it('mientras se comprueba la sesión lo indica', () => {
+    useAuthStore.setState({ status: 'checking', user: null })
 
     const { result } = renderHook(() => useUser())
 
-    expect(result.current).toEqual({ token, email: 'test@mail.com', isExpired: false })
+    expect(result.current.status).toBe('checking')
   })
 
-  it('con una sesión caducada indica que ha expirado', () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(NOW)
-    useAuthStore.getState().setSession(buildFakeJwt(buildTokenPayload({ iat: nowSeconds - 3600, exp: nowSeconds })))
+  it('con sesión devuelve el correo y el rol', () => {
+    useAuthStore.getState().setSignedIn({ uid: 'u1', email: 'juez@mail.com', role: 'JUDGE' })
 
     const { result } = renderHook(() => useUser())
 
-    expect(result.current.isExpired).toBe(true)
+    expect(result.current).toEqual({ status: 'signedIn', email: 'juez@mail.com', role: 'JUDGE' })
   })
 
   it('se actualiza cuando cambia la sesión', () => {
     const { result } = renderHook(() => useUser())
 
-    act(() => useAuthStore.getState().setSession(buildFakeJwt(buildTokenPayload())))
+    act(() => useAuthStore.getState().setSignedIn({ uid: 'u1', email: 'a@b.es', role: 'ADMIN' }))
 
-    expect(result.current.isExpired).toBe(false)
+    expect(result.current.role).toBe('ADMIN')
   })
 })

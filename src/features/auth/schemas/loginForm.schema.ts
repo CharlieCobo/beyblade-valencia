@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 /**
  * Esquema del formulario de login: mensajes para el usuario y transformaciones de entrada.
- * Es distinto del contrato de la API (`LoginRequestSchema`), pero su salida tiene la misma forma.
+ * Es distinto del contrato de las credenciales (`CredentialsSchema`), pero su salida tiene la misma forma.
  */
 export const LoginFormSchema = z.object({
   email: z.string().trim().min(1, 'Introduce tu correo').pipe(z.email('Introduce un correo válido')),
@@ -12,5 +12,5 @@ export const LoginFormSchema = z.object({
 
 /** Lo que el usuario escribe. */
 export type LoginFormValues = z.input<typeof LoginFormSchema>
-/** Lo que se envía a la API, ya transformado. */
+/** Lo que se usa para iniciar sesión, ya transformado. */
 export type LoginFormOutput = z.output<typeof LoginFormSchema>

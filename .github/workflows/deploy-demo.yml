@@ -1,16 +1,18 @@
-name: Deploy demo (GitHub Pages + MSW)
+name: Deploy demo (GitHub Pages + Firebase)
 
-# Publica el build de demo (con MSW) en la rama gh-pages.
+# Comprueba cada PR y publica el build de demo en la rama gh-pages al fusionar en master.
+# La demo usa el proyecto de Firebase configurado en .env (configuración web pública).
 on:
   push:
     branches: [master]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -22,12 +24,19 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # El emulador de Firestore (tests de las reglas) necesita Java.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
       - run: npm run test:run
+      - run: npm run test:rules
       - run: npm run build:demo
-      - uses: peaceiris/actions-gh-pages@v4
+      - if: github.event_name != 'pull_request'
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist

@@ -3,12 +3,30 @@
   "plugins": ["react", "typescript", "oxc", "vitest"],
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+    "react/only-export-components": [
+      "warn",
+      {
+        "allowConstantExport": true
+      }
+    ]
   },
   "overrides": [
     {
       "files": ["src/test/**", "**/*.test.{ts,tsx}"],
-      "rules": { "react/only-export-components": "off" }
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    },
+    {
+      "files": ["firebase/**/*.test.ts"],
+      "rules": {
+        "vitest/expect-expect": [
+          "warn",
+          {
+            "assertFunctionNames": ["expect", "assertFails", "assertSucceeds"]
+          }
+        ]
+      }
     }
   ]
 }

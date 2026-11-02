@@ -1,8 +1,7 @@
 import { Route, Routes, useLocation } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { renderWithProviders, screen } from '@/test/test-utils'
-import { TEST_USER } from '../mocks/authUser.factory'
-import { buildFakeJwt, buildTokenPayload } from '../mocks/jwt'
+import { TEST_ACCOUNT } from '../mocks/userProfile.factory'
 import { useAuthStore } from '../store/auth.store'
 import { LoginPage } from './LoginPage'
 import { RequireAuth } from './RequireAuth'
@@ -25,8 +24,8 @@ function renderLogin(route = '/login') {
 }
 
 async function login(user: ReturnType<typeof renderWithProviders>['user']) {
-  await user.type(screen.getByLabelText(/correo/i), TEST_USER.email)
-  await user.type(screen.getByLabelText(/contraseña/i), TEST_USER.password)
+  await user.type(screen.getByLabelText(/correo/i), TEST_ACCOUNT.email)
+  await user.type(screen.getByLabelText(/contraseña/i), TEST_ACCOUNT.password)
   await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 }
 
@@ -48,18 +47,24 @@ describe('LoginPage', () => {
     expect(await screen.findByTestId('path')).toHaveTextContent('/torneos?ciudad=valencia')
   })
 
-  it('con una sesión vigente redirige a /', () => {
-    useAuthStore.getState().setSession(buildFakeJwt(buildTokenPayload()))
+  it('con una sesión activa redirige a /', () => {
+    useAuthStore.getState().setSignedIn({ uid: 'u1', email: 'a@b.es', role: 'MEMBER' })
 
     renderLogin()
 
     expect(screen.getByTestId('path')).toHaveTextContent(/^\/$/)
   })
 
-  it('con una sesión caducada muestra el formulario', () => {
-    const iat = Math.floor(Date.now() / 1000) - 7200
-    useAuthStore.getState().setSession(buildFakeJwt(buildTokenPayload({ iat, exp: iat + 3600 })))
+  it('mientras se comprueba la sesión no muestra el formulario', () => {
+    useAuthStore.setState({ status: 'checking', user: null })
 
+    renderLogin()
+
+    expect(screen.getByRole('status')).toHaveTextContent('Comprobando sesión…')
+    expect(screen.queryByRole('form', { name: 'Iniciar sesión' })).not.toBeInTheDocument()
+  })
+
+  it('sin sesión muestra el formulario', () => {
     renderLogin()
 
     expect(screen.getByRole('form', { name: 'Iniciar sesión' })).toBeInTheDocument()

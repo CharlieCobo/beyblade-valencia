@@ -4,12 +4,8 @@ import { resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
 
 /**
  * GitHub Pages no tiene fallback para SPA: ante una ruta inexistente sirve 404.html.
@@ -31,9 +27,6 @@ function spaFallback404(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd())
-  const apiBase = (env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '')
-
   return {
     // En GitHub Pages la app se sirve desde /beyblade-valencia/
     base: mode === 'demo' ? '/beyblade-valencia/' : '/',
@@ -63,8 +56,7 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           navigateFallback: 'index.html',
-          // La API nunca pasa por la caché ni por el fallback de navegación
-          navigateFallbackDenylist: [new RegExp(`^${escapeRegExp(apiBase)}(/|$)`)],
+          // Sin runtimeCaching: las peticiones a Firebase (otros orígenes) van siempre a la red.
           cleanupOutdatedCaches: true,
           // 404.html es una copia de index.html solo para GitHub Pages: no hace falta precachearla
           globIgnores: ['**/404.html'],
@@ -82,10 +74,17 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./src/test/setup.ts'],
       include: ['src/**/*.{test,spec}.{ts,tsx}'],
       restoreMocks: true,
+      // Valores ficticios: los tests usan implementaciones en memoria y nunca conectan con Firebase.
+      env: {
+        VITE_FIREBASE_API_KEY: 'test-api-key',
+        VITE_FIREBASE_AUTH_DOMAIN: 'test.firebaseapp.com',
+        VITE_FIREBASE_PROJECT_ID: 'test-project',
+        VITE_FIREBASE_APP_ID: 'test-app-id',
+      },
       coverage: {
         provider: 'v8',
         include: ['src/**/*.{ts,tsx}'],
-        exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/mocks/**', 'src/main.tsx'],
+        exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/main.tsx'],
       },
     },
   }

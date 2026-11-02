@@ -1,21 +1,10 @@
 import { onlineManager } from '@tanstack/react-query'
-import { delay, http, HttpResponse } from 'msw'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { server } from '@/mocks/server'
-import { apiUrl } from '@/shared/api/httpClient'
+import { describe, expect, it, vi } from 'vitest'
 import { renderWithProviders, screen } from '@/test/test-utils'
-import { LOGIN_PATH } from '../api/auth.api'
-import { TEST_USER } from '../mocks/authUser.factory'
-import { AUTH_STORAGE_KEY, useAuthStore } from '../store/auth.store'
+import { fakeAuth } from '../mocks/fakeAuthGateway'
+import { TEST_ACCOUNT } from '../mocks/userProfile.factory'
+import { useAuthStore } from '../store/auth.store'
 import { LoginForm } from './LoginForm'
-
-function spyOnLogin() {
-  const onRequest = vi.fn<() => void>()
-  server.events.on('request:start', ({ request }) => {
-    if (request.url === apiUrl(LOGIN_PATH)) onRequest()
-  })
-  return onRequest
-}
 
 async function fillAndSubmit(user: ReturnType<typeof renderWithProviders>['user'], email: string, password: string) {
   if (email) await user.type(screen.getByLabelText(/correo/i), email)
@@ -24,8 +13,6 @@ async function fillAndSubmit(user: ReturnType<typeof renderWithProviders>['user'
 }
 
 describe('LoginForm', () => {
-  afterEach(() => server.events.removeAllListeners())
-
   it('muestra los campos de correo y contraseña', () => {
     renderWithProviders(<LoginForm />)
 
@@ -46,8 +33,7 @@ describe('LoginForm', () => {
       expect(screen.queryByText(/^Introduce/)).not.toBeInTheDocument()
     })
 
-    it('con los campos vacíos muestra los mensajes, enfoca el correo y no envía la petición', async () => {
-      const onRequest = spyOnLogin()
+    it('con los campos vacíos muestra los mensajes, enfoca el correo y no intenta iniciar sesión', async () => {
       const { user } = renderWithProviders(<LoginForm />)
 
       await fillAndSubmit(user, '', '')
@@ -59,18 +45,17 @@ describe('LoginForm', () => {
       expect(password()).toHaveAttribute('aria-invalid', 'true')
       expect(password()).toHaveAccessibleDescription('Introduce tu contraseña')
       expect(email()).toHaveFocus()
-      expect(onRequest).not.toHaveBeenCalled()
+      expect(fakeAuth.signInCalls).toEqual([])
     })
 
-    it('con un correo inválido pide uno válido y no envía la petición', async () => {
-      const onRequest = spyOnLogin()
+    it('con un correo inválido pide uno válido y no intenta iniciar sesión', async () => {
       const { user } = renderWithProviders(<LoginForm />)
 
       await fillAndSubmit(user, 'test-mail.com', 'Test1234!')
 
       expect(await screen.findByText('Introduce un correo válido')).toBeInTheDocument()
       expect(email()).toHaveFocus()
-      expect(onRequest).not.toHaveBeenCalled()
+      expect(fakeAuth.signInCalls).toEqual([])
     })
 
     it('no muestra el error mientras se escribe por primera vez en un campo', async () => {
@@ -108,84 +93,86 @@ describe('LoginForm', () => {
       expect(email()).toHaveFocus()
     })
 
-    it('envía el correo sin los espacios de alrededor', async () => {
-      const bodies: unknown[] = []
-      server.events.on('request:start', async ({ request }) => {
-        if (request.url === apiUrl(LOGIN_PATH)) bodies.push(await request.clone().json())
-      })
+    it('inicia sesión con el correo sin los espacios de alrededor', async () => {
       const onSuccess = vi.fn<() => void>()
       const { user } = renderWithProviders(<LoginForm onSuccess={onSuccess} />)
 
-      await fillAndSubmit(user, ` ${TEST_USER.email} `, TEST_USER.password)
+      await fillAndSubmit(user, ` ${TEST_ACCOUNT.email} `, TEST_ACCOUNT.password)
 
       await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled())
-      expect(bodies).toEqual([{ email: TEST_USER.email, password: TEST_USER.password }])
+      expect(fakeAuth.signInCalls).toEqual([{ email: TEST_ACCOUNT.email, password: TEST_ACCOUNT.password }])
     })
   })
 
-  it('inicia sesión con el usuario de prueba', async () => {
+  it('inicia sesión con una cuenta habilitada', async () => {
     const onSuccess = vi.fn<() => void>()
     const { user } = renderWithProviders(<LoginForm onSuccess={onSuccess} />)
 
-    await fillAndSubmit(user, TEST_USER.email, TEST_USER.password)
+    await fillAndSubmit(user, TEST_ACCOUNT.email, TEST_ACCOUNT.password)
 
     await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled())
-    expect(useAuthStore.getState().email).toBe(TEST_USER.email)
+    expect(useAuthStore.getState().user).toMatchObject({ email: TEST_ACCOUNT.email, role: 'MEMBER' })
   })
 
   it('indica que se está enviando y no permite reenviar', async () => {
-    server.use(
-      http.post(apiUrl(LOGIN_PATH), async () => {
-        await delay('infinite')
-        return HttpResponse.json({})
-      }),
-    )
+    fakeAuth.holdNextSignIn()
     const { user } = renderWithProviders(<LoginForm />)
 
-    await fillAndSubmit(user, TEST_USER.email, TEST_USER.password)
+    await fillAndSubmit(user, TEST_ACCOUNT.email, TEST_ACCOUNT.password)
 
     expect(await screen.findByRole('button', { name: 'Iniciando sesión…' })).toBeDisabled()
   })
 
-  it('muestra un mensaje genérico ante credenciales incorrectas', async () => {
+  it('muestra un mensaje genérico ante una contraseña equivocada', async () => {
     const { user } = renderWithProviders(<LoginForm />)
 
-    await fillAndSubmit(user, TEST_USER.email, 'otra-contraseña')
+    await fillAndSubmit(user, TEST_ACCOUNT.email, 'otra-contraseña')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Correo o contraseña incorrectos')
-    expect(useAuthStore.getState().token).toBeNull()
+    expect(useAuthStore.getState().status).toBe('signedOut')
   })
 
-  it('muestra un error genérico si el servidor falla', async () => {
-    server.use(http.post(apiUrl(LOGIN_PATH), () => new HttpResponse(null, { status: 500 })))
+  it('muestra el mismo mensaje ante un correo inexistente', async () => {
     const { user } = renderWithProviders(<LoginForm />)
 
-    await fillAndSubmit(user, TEST_USER.email, TEST_USER.password)
+    await fillAndSubmit(user, 'nadie@mail.com', TEST_ACCOUNT.password)
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo iniciar sesión. Inténtalo de nuevo.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Correo o contraseña incorrectos')
   })
 
-  it('muestra un error genérico y no guarda sesión si el token recibido no es válido', async () => {
-    server.use(http.post(apiUrl(LOGIN_PATH), () => HttpResponse.json({ accessToken: 'no-es-un-jwt' })))
+  it.each([
+    ['sin perfil', undefined],
+    ['con un rol desconocido', { role: 'SUPERUSER' }],
+  ])('avisa de que la cuenta no está habilitada si está %s', async (_, profile) => {
+    fakeAuth.addAccount({ uid: 'u2', email: 'otra@mail.com', password: 'Clave1234!', profile })
     const onSuccess = vi.fn<() => void>()
     const { user } = renderWithProviders(<LoginForm onSuccess={onSuccess} />)
 
-    await fillAndSubmit(user, TEST_USER.email, TEST_USER.password)
+    await fillAndSubmit(user, 'otra@mail.com', 'Clave1234!')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo iniciar sesión. Inténtalo de nuevo.')
-    expect(useAuthStore.getState().token).toBeNull()
-    expect(JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) ?? '{}').state?.token ?? null).toBeNull()
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Tu cuenta no está habilitada. Contacta con un administrador.',
+    )
+    expect(useAuthStore.getState().status).toBe('signedOut')
     expect(onSuccess).not.toHaveBeenCalled()
   })
 
-  it('avisa de que no hay conexión y no envía la petición', async () => {
-    const onRequest = spyOnLogin()
+  it('muestra un error genérico si el servicio falla', async () => {
+    fakeAuth.failNextSignIn(Object.assign(new Error('caído'), { code: 'auth/internal-error' }))
+    const { user } = renderWithProviders(<LoginForm />)
+
+    await fillAndSubmit(user, TEST_ACCOUNT.email, TEST_ACCOUNT.password)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo iniciar sesión. Inténtalo de nuevo.')
+  })
+
+  it('avisa de que no hay conexión y no intenta iniciar sesión', async () => {
     onlineManager.setOnline(false)
     const { user } = renderWithProviders(<LoginForm />)
 
-    await fillAndSubmit(user, TEST_USER.email, TEST_USER.password)
+    await fillAndSubmit(user, TEST_ACCOUNT.email, TEST_ACCOUNT.password)
 
     expect(screen.getByRole('alert')).toHaveTextContent('Sin conexión. Revisa tu conexión e inténtalo de nuevo.')
-    expect(onRequest).not.toHaveBeenCalled()
+    expect(fakeAuth.signInCalls).toEqual([])
   })
 })
