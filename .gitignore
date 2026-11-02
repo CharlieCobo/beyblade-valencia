@@ -13,6 +13,9 @@ dist-ssr
 coverage
 *.local
 
+# Configuración de Firebase: en local va en .env.local y en CI en variables de GitHub
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

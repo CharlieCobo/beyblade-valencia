@@ -1,7 +1,9 @@
 name: Deploy demo (GitHub Pages + Firebase)
 
 # Comprueba cada PR y publica el build de demo en la rama gh-pages al fusionar en master.
-# La demo usa el proyecto de Firebase configurado en .env (configuración web pública).
+# La configuración de Firebase sale de las variables del repositorio (Settings > Secrets and variables >
+# Actions > Variables): VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, VITE_FIREBASE_PROJECT_ID y
+# VITE_FIREBASE_APP_ID. No están en el repo.
 on:
   push:
     branches: [master]
@@ -34,7 +36,21 @@ jobs:
       - run: npm run format:check
       - run: npm run test:run
       - run: npm run test:rules
-      - run: npm run build:demo
+      - name: Build de demo
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+          # Al publicar, una variable ausente rompería la demo en el navegador: se falla aquí.
+          REQUIRE_FIREBASE_CONFIG: ${{ github.event_name != 'pull_request' }}
+        run: |
+          if [ "$REQUIRE_FIREBASE_CONFIG" = "true" ]; then
+            for name in VITE_FIREBASE_API_KEY VITE_FIREBASE_AUTH_DOMAIN VITE_FIREBASE_PROJECT_ID VITE_FIREBASE_APP_ID; do
+              if [ -z "${!name}" ]; then echo "::error::Falta la variable del repositorio $name"; exit 1; fi
+            done
+          fi
+          npm run build:demo
       - if: github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@v4
         with:

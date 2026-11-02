@@ -4,7 +4,7 @@
 
 - [x] 1.1 Instalar `firebase` (dependencia) y `firebase-tools` y `@firebase/rules-unit-testing` (desarrollo); verificar con `npm ls firebase firebase-tools @firebase/rules-unit-testing`
 - [x] 1.2 Reescribir `EnvSchema` en `src/shared/config/env.ts` con las cuatro variables `VITE_FIREBASE_*` obligatorias (`z.string().min(1)`, sin valores por defecto) y adaptar `env.test.ts` a los escenarios de "Configuración validada al arrancar" (variable ausente, vacía, desconocida, `VITE_API_MOCKING` antigua, configuración válida); verificar con `npx vitest run src/shared/config`
-- [ ] 1.3 Crear `.env` con la configuración pública del proyecto de Firebase, actualizar `.env.example`, borrar `.env.development` y `.env.demo`, y dar valores ficticios a las `VITE_FIREBASE_*` en `test.env` de `vite.config.ts`; verificar que `npm run dev` arranca sin error de configuración
+- [ ] 1.3 Crear `.env.local` (ignorado por Git, igual que `.env`) con la configuración del proyecto de Firebase, actualizar `.env.example`, borrar `.env.development` y `.env.demo`, y dar valores ficticios a las `VITE_FIREBASE_*` en `test.env` de `vite.config.ts`; verificar que `npm run dev` arranca sin error de configuración
 - [x] 1.4 Crear `src/shared/firebase/app.ts` con la inicialización perezosa de `FirebaseApp`, `Auth` y `Firestore` a partir de `env`; verificar con `npm run typecheck` y que ningún módulo de `src/` lo importa de forma estática salvo las implementaciones reales de los puertos
 
 ## 2. Contratos
@@ -42,7 +42,7 @@
 
 ## 7. Documentación, convenciones y despliegue
 
-- [ ] 7.1 Actualizar el workflow `deploy-demo.yml` (nombre y comentarios sin MSW; build de demo con `.env`) y confirmar que `npm run build:demo` genera la app apuntando al proyecto de Firebase
+- [ ] 7.1 Actualizar el workflow `deploy-demo.yml` (nombre y comentarios sin MSW; build de demo con las variables `VITE_FIREBASE_*` del repositorio, fallando al publicar si falta alguna) y confirmar que `npm run build:demo` genera la app apuntando al proyecto de Firebase
 - [x] 7.2 Actualizar `README.md`: stack sin MSW, estructura (`shared/firebase`, `shared/contracts`, puertos y fakes por feature), variables `VITE_FIREBASE_*`, `npm run test:rules` y los pasos de preparación del proyecto de Firebase (design.md, Migration Plan); verificar que los comandos documentados existen en `package.json`
 - [x] 7.3 Actualizar `context` y `rules` de `openspec/config.yaml` para sustituir MSW y `httpClient` por Firebase, puertos con fakes en memoria y tests de reglas; verificar con `npx openspec validate migrate-to-firebase --strict`
 

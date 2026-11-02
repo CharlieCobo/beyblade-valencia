@@ -40,7 +40,7 @@ Supuestos registrados (acordados o por defecto):
 
 - **Código**: `src/features/auth` (api, hooks, store, schemas, componentes `LoginForm`, `RequireAuth`, `LoginPage`), `src/features/beyblades` (api, hooks, mocks), `src/shared/api` (se elimina `httpClient`; `ContractError` se adapta), `src/shared/config/env.ts`, `src/main.tsx`, `src/app/layout/AppLayout.tsx`, `src/mocks/` (se elimina), `src/test/setup.ts` y `src/test/test-utils.tsx`, `vite.config.ts` (denylist de la API en Workbox).
 - **Dependencias**: se añaden `firebase` y, para probar las reglas, `firebase-tools` y `@firebase/rules-unit-testing` (desarrollo). Se elimina `msw`. Faker se mantiene para las factories.
-- **Ficheros nuevos**: `firebase.json`, `firestore.rules`, `.env` con la configuración pública de Firebase; desaparecen `.env.development`/`.env.demo` de mocks.
+- **Ficheros nuevos**: `firebase.json`, `firestore.rules`, `.env.example` con las variables de Firebase (los valores van en `.env.local` y en variables del repositorio de GitHub, no en el repo); desaparecen `.env.development`/`.env.demo` de mocks.
 - **Infraestructura**: proyecto de Firebase con Authentication (correo/contraseña) y Firestore; `charliecobo.github.io` en los dominios autorizados; despliegue manual de las reglas. El workflow `deploy-demo.yml` deja de construir con MSW.
 - **Documentación y convenciones**: `README.md` y el `context`/`rules` de `openspec/config.yaml`, que hoy describen MSW como fuente de mocks.
 - **Datos**: los usuarios y beyblades de prueba de los mocks desaparecen; los datos reales se crean en Firestore.

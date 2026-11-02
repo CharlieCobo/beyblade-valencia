@@ -4,20 +4,20 @@ PWA con React 19 + Vite + TypeScript, Tailwind CSS, Zod, React Hook Form, React 
 
 ## Scripts
 
-| Comando                 | Descripción                                                       |
-| ----------------------- | ----------------------------------------------------------------- |
-| `npm run dev`           | Servidor de desarrollo (contra el proyecto de Firebase de `.env`) |
-| `npm run build`         | Type-check + build de producción                                  |
-| `npm run build:demo`    | Build de demo para GitHub Pages                                   |
-| `npm run preview`       | Sirve el build                                                    |
-| `npm run lint`          | Lint con oxlint                                                   |
-| `npm run typecheck`     | Sólo comprobación de tipos                                        |
-| `npm run format`        | Formatea el código con Prettier                                   |
-| `npm run format:check`  | Comprueba el formato sin escribir (CI)                            |
-| `npm test`              | Vitest en modo watch                                              |
-| `npm run test:run`      | Vitest una sola vez (CI)                                          |
-| `npm run test:coverage` | Tests con cobertura (v8)                                          |
-| `npm run test:rules`    | Tests de las reglas de Firestore con el emulador (necesita Java)  |
+| Comando                 | Descripción                                                             |
+| ----------------------- | ----------------------------------------------------------------------- |
+| `npm run dev`           | Servidor de desarrollo (contra el proyecto de Firebase de `.env.local`) |
+| `npm run build`         | Type-check + build de producción                                        |
+| `npm run build:demo`    | Build de demo para GitHub Pages                                         |
+| `npm run preview`       | Sirve el build                                                          |
+| `npm run lint`          | Lint con oxlint                                                         |
+| `npm run typecheck`     | Sólo comprobación de tipos                                              |
+| `npm run format`        | Formatea el código con Prettier                                         |
+| `npm run format:check`  | Comprueba el formato sin escribir (CI)                                  |
+| `npm test`              | Vitest en modo watch                                                    |
+| `npm run test:run`      | Vitest una sola vez (CI)                                                |
+| `npm run test:coverage` | Tests con cobertura (v8)                                                |
+| `npm run test:rules`    | Tests de las reglas de Firestore con el emulador (necesita Java)        |
 
 ### Formato
 
@@ -119,18 +119,27 @@ beyblades/{id}   { name, type, blader, wins }              el id es el del docum
 ### Configuración
 
 Las variables `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID` y
-`VITE_FIREBASE_APP_ID` son obligatorias y están en `.env` (versionado: la configuración web de Firebase es
-pública). `.env.example` documenta de dónde sale cada una. Desarrollo, demo y producción usan el mismo proyecto.
+`VITE_FIREBASE_APP_ID` son obligatorias y **no están en el repo**:
+
+- **En local**: copia `.env.example` como `.env.local` (Git ignora `*.local` y `.env`) y rellena los valores.
+- **En CI**: variables del repositorio en _Settings → Secrets and variables → Actions → Variables_, con los
+  mismos nombres. El workflow las pasa al build de la demo y falla al publicar si falta alguna.
+
+Estos valores acaban en el JavaScript que descarga el navegador, así que no son secretos: lo que protege los
+datos son las reglas de Firestore y restringir la API key (paso 6 de abajo). Desarrollo, demo y producción
+usan el mismo proyecto.
 
 ### Preparar el proyecto de Firebase
 
-1. Crear el proyecto y una app web; copiar su configuración a `.env`.
+1. Crear el proyecto y una app web; copiar su configuración a `.env.local` y a las variables del repositorio en GitHub.
 2. **Authentication**: activar el proveedor _Correo electrónico/contraseña_ y desactivar el alta de cuentas
    por los clientes (_Settings → User actions_), porque la app no tiene registro.
 3. **Authentication → Settings → Dominios autorizados**: añadir `charliecobo.github.io` (demo) además de `localhost`.
 4. **Firestore**: crear la base de datos y desplegar las reglas: `npx firebase deploy --only firestore:rules --project <id>`.
 5. Crear las cuentas en Authentication y, para cada una, su documento `users/{uid}` con su `role`
    (al menos un `ADMIN`). Para probar a mano, una cuenta `MEMBER` `test@mail.com` / `Test1234!`.
+6. En Google Cloud Console (_APIs y servicios → Credenciales_), restringir la API key del navegador a los
+   referentes `https://charliecobo.github.io/*` y `http://localhost:*/*`.
 
 ### Tests
 
@@ -275,7 +284,7 @@ Puedes comprobarlo en <https://maskable.app/>.
 El workflow `.github/workflows/deploy-demo.yml` comprueba cada PR (lint, formato, tests y tests de reglas) y
 publica en cada push a `master` (o manualmente desde _Actions → Run workflow_) un build con `--mode demo`:
 
-- Usa el mismo proyecto de Firebase que desarrollo (`.env`), así que muestra datos reales.
+- Usa el mismo proyecto de Firebase que desarrollo (variables del repositorio), así que muestra datos reales.
 - `base` es `/beyblade-valencia/`.
 - GitHub Pages no tiene fallback para SPA, así que el build de demo copia `index.html` como `404.html`
   (plugin `spaFallback404` en `vite.config.ts`). Así, abrir directamente una URL como

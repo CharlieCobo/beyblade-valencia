@@ -135,7 +135,7 @@ Cualquier persona con la `apiKey` pública puede crear una cuenta de correo/cont
 
 ### 9. Configuración
 
-`EnvSchema` pasa a `z.strictObject({ VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, VITE_FIREBASE_PROJECT_ID, VITE_FIREBASE_APP_ID })`, todas `z.string().min(1)` y sin valores por defecto. Como la configuración web de Firebase es pública por diseño (la seguridad la dan las reglas), se versiona en `.env` y se borran `.env.development` y `.env.demo`; `.env.example` documenta las variables. En tests, `parseEnv` se prueba con objetos explícitos y el `env` del módulo recibe valores ficticios desde `vitest` (`test.env`), lo que no importa porque los fakes no usan Firebase.
+`EnvSchema` pasa a `z.strictObject({ VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, VITE_FIREBASE_PROJECT_ID, VITE_FIREBASE_APP_ID })`, todas `z.string().min(1)` y sin valores por defecto. Los valores no se versionan: en local van en `.env.local` (ignorado por Git, igual que `.env`) y en CI en variables del repositorio de GitHub que el workflow pasa al build de la demo, fallando al publicar si falta alguna. Se borran `.env.development` y `.env.demo`; `.env.example` documenta las variables. La configuración web de Firebase no es un secreto (acaba en el bundle): no versionarla es higiene y facilita cambiar de proyecto; la seguridad la dan las reglas y la restricción de la API key por referente. En tests, `parseEnv` se prueba con objetos explícitos y el `env` del módulo recibe valores ficticios desde `vitest` (`test.env`), lo que no importa porque los fakes no usan Firebase.
 
 ### 10. PWA
 
@@ -143,7 +143,7 @@ Las peticiones de Firebase van a otros orígenes (`*.googleapis.com`) y el servi
 
 ## Risks / Trade-offs
 
-- [Desarrollo y demo escriben y leen datos reales del mismo proyecto] → No hay escrituras desde la app en este cambio; las cuentas de prueba se marcan como tales; separar proyectos más adelante solo requiere otro `.env.<modo>`.
+- [Desarrollo y demo escriben y leen datos reales del mismo proyecto] → No hay escrituras desde la app en este cambio; las cuentas de prueba se marcan como tales; separar proyectos más adelante solo requiere otros valores por modo o entorno.
 - [Los fakes pueden divergir del comportamiento real de Firebase] → Los fakes implementan la misma interfaz y devuelven los mismos errores de dominio; las reglas se prueban con el emulador; verificación manual del login y del listado contra Firebase en la tarea final.
 - [Creación de cuentas por terceros vía API REST] → Reglas que exigen perfil; desactivar el alta por clientes en la consola.
 - [Tamaño del bundle con el SDK de Firebase] → SDK modular, import dinámico en un chunk aparte; se compara el tamaño del build antes y después.
@@ -157,10 +157,10 @@ Las peticiones de Firebase van a otros orígenes (`*.googleapis.com`) y el servi
 1. Crear el proyecto de Firebase: activar Authentication (correo/contraseña, sin alta por clientes), crear Firestore, añadir `charliecobo.github.io` y `localhost` a los dominios autorizados.
 2. Desplegar `firestore.rules` (`npx firebase deploy --only firestore:rules`).
 3. Crear en la consola las cuentas iniciales y sus documentos `users/{uid}` (al menos un `ADMIN`), y los beyblades iniciales.
-4. Fusionar el cambio; el workflow de la demo construye con el `.env` versionado.
+4. Crear las variables `VITE_FIREBASE_*` del repositorio en GitHub y restringir la API key por referente; fusionar el cambio y el workflow construye la demo con ellas.
 5. Rollback: revertir el merge vuelve a la demo con MSW; el proyecto de Firebase puede quedarse sin uso.
 
 ## Open Questions
 
-- Nombre e id definitivos del proyecto de Firebase (solo cambian los valores de `.env`).
+- Nombre e id definitivos del proyecto de Firebase (solo cambian los valores de `.env.local` y de las variables del repositorio).
 - Si el botón "Cerrar sesión" va en una cabecera nueva o en el `AppLayout` actual junto al título (detalle visual; el comportamiento está en el spec).
