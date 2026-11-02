@@ -90,7 +90,7 @@ El store guarda `{ token, email, exp }`, con `exp` en segundos tomado del payloa
 ```
 
 - **`RequireAuth`**: si `isExpired`, devuelve `<Navigate to="/login" replace state={{ from: location }}/>`. Si no, devuelve `<Outlet/>`.
-- **`LoginPage`**: si hay sesión no expirada, devuelve `<Navigate to="/" replace/>`. Tras el `onSuccess`, navega a `state.from.pathname` (más `search` y `hash`) con `replace`, o a `/` si no hay `from`. Solo usa `from` si es un objeto location del propio router, nunca una URL arbitraria.
+- **`LoginPage`**: si hay sesión no expirada, devuelve `<Navigate replace/>` hacia `state.from` (`pathname` más `search` y `hash`) o hacia `/` si no hay `from`. Esa misma regla cubre la vuelta tras el login: al guardar la sesión, la página se vuelve a renderizar y redirige, sin una navegación aparte en el `onSuccess`. Una navegación aparte no llegaría a ejecutarse, porque la redirección desmonta la página antes. Solo usa `from` si es un objeto location del propio router, nunca una URL arbitraria.
 - **`AppLayout`** (`src/app/layout/AppLayout.tsx`): de momento `<main className="container"><h1>Beyblade Valencia</h1><Outlet/></main>`, que es lo que pintaba `App`. El header y el menú lateral se añadirán aquí.
 - **`HomePage`** (`src/app/pages/HomePage.tsx`): compone `BeybladeList`.
 - **Alternativa descartada: un HOC `withAuth`.** Protege página a página y es fácil olvidarlo en una página nueva. La ruta de layout protege un subárbol entero y se ve en la tabla de rutas.

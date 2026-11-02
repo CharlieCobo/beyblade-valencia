@@ -13,6 +13,21 @@ describe('mockTransport', () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
+  it('resuelve el login simulado', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    const request = new Request(apiUrl('/auth/login'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'test@mail.com', password: 'Test1234!' }),
+    })
+
+    const response = await mockTransport(request)
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ accessToken: expect.stringMatching(/^[\w-]+\.[\w-]+\.[\w-]+$/) })
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
   it('envía a la red las peticiones sin handler', async () => {
     const networkResponse = Response.json({ from: 'network' })
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(networkResponse)
