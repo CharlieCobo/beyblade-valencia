@@ -1,135 +1,39 @@
+@import 'tailwindcss';
+
+/* `dark:` se activa con la clase .dark (en <html>), no con prefers-color-scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tema claro: definido para un futuro selector de tema, hoy no se usa. */
 :root {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  color-scheme: light dark;
+  color-scheme: light;
   --bg: #ffffff;
   --fg: #1a1a1a;
   --card: #f4f4f5;
   --accent: #dd6e2f;
+  --danger: #c62828;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121212;
-    --fg: #f1f1f1;
-    --card: #1f1f22;
+/* Tema oscuro: el que se aplica por defecto (index.html pone .dark en <html>). */
+.dark {
+  color-scheme: dark;
+  --bg: #121212;
+  --fg: #f1f1f1;
+  --card: #1f1f22;
+  --accent: #dd6e2f;
+  --danger: #ef5350;
+}
+
+@theme inline {
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+}
+
+@layer base {
+  body {
+    @apply bg-background font-sans leading-[normal] text-foreground;
   }
 }
-
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-}
-
-.container {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-}
-
-.grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-}
-
-.card {
-  background: var(--card);
-  border-radius: 12px;
-  padding: 1rem;
-}
-
-.card h3 { margin-top: 0; text-transform: capitalize; }
-
-.badge {
-  background: var(--accent);
-  color: #fff;
-  border-radius: 999px;
-  padding: 0.15rem 0.6rem;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-}
-
-.update-prompt {
-  position: fixed;
-  inset: auto 1rem 1rem 1rem;
-  max-width: 420px;
-  margin-left: auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--card);
-  color: var(--fg);
-  border-left: 4px solid var(--accent);
-  border-radius: 12px;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 0.25);
-}
-
-.update-prompt__actions { display: flex; gap: 0.5rem; }
-
-.button {
-  font: inherit;
-  padding: 0.4rem 0.9rem;
-  border-radius: 8px;
-  border: 1px solid currentColor;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-
-.button--primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-/* Login */
-.login-page {
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 2rem 1rem;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 380px;
-  background: var(--card);
-  border-radius: 12px;
-  padding: 1.5rem;
-}
-
-.login-card h1 { margin-top: 0; font-size: 1.5rem; }
-
-.login-form { display: grid; gap: 1rem; }
-
-.field { display: grid; gap: 0.35rem; }
-
-.field input {
-  font: inherit;
-  padding: 0.55rem 0.7rem;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent);
-  background: var(--bg);
-  color: var(--fg);
-}
-
-.field input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-.form-error {
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  border-left: 4px solid #c62828;
-  background: color-mix(in srgb, #c62828 12%, transparent);
-  border-radius: 6px;
-}
-
-.button:disabled { opacity: 0.6; cursor: progress; }

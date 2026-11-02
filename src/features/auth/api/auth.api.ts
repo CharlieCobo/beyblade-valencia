@@ -1,8 +1,8 @@
 import { httpPost } from '@/shared/api/httpClient'
-import type { LoginCredentials, LoginResponse } from '../types/auth.types'
+import { LoginRequestSchema, LoginResponseSchema, type LoginRequest, type LoginResponse } from '../schemas/auth.schema'
 
 export const LOGIN_PATH = '/auth/login'
 
-export function login(credentials: LoginCredentials): Promise<LoginResponse> {
-  return httpPost<LoginCredentials, LoginResponse>(LOGIN_PATH, credentials)
+export function login(credentials: LoginRequest): Promise<LoginResponse> {
+  return httpPost(LOGIN_PATH, credentials, { request: LoginRequestSchema, response: LoginResponseSchema })
 }

@@ -1,20 +1,28 @@
 # Beyblade Valencia
 
-PWA con React 19 + Vite + TypeScript, React Router, TanStack Query y Zustand, con Vitest y Testing Library para tests, y MSW + Faker para mocks.
+PWA con React 19 + Vite + TypeScript, Tailwind CSS, Zod, React Hook Form, React Router, TanStack Query y Zustand, con Vitest y Testing Library para tests, y MSW + Faker para mocks.
 
 ## Scripts
 
-| Comando                 | Descripción                                          |
-| ----------------------- | ---------------------------------------------------- |
+| Comando                 | Descripción                                              |
+| ----------------------- | -------------------------------------------------------- |
 | `npm run dev`           | Servidor de desarrollo (con la API simulada por defecto) |
-| `npm run build`         | Type-check + build de producción                     |
-| `npm run build:demo`    | Build de demo con MSW activo (GitHub Pages)          |
-| `npm run preview`       | Sirve el build                                       |
-| `npm run lint`          | Lint con oxlint                                      |
-| `npm run typecheck`     | Sólo comprobación de tipos                           |
-| `npm test`              | Vitest en modo watch                                 |
-| `npm run test:run`      | Vitest una sola vez (CI)                             |
-| `npm run test:coverage` | Tests con cobertura (v8)                             |
+| `npm run build`         | Type-check + build de producción                         |
+| `npm run build:demo`    | Build de demo con MSW activo (GitHub Pages)              |
+| `npm run preview`       | Sirve el build                                           |
+| `npm run lint`          | Lint con oxlint                                          |
+| `npm run typecheck`     | Sólo comprobación de tipos                               |
+| `npm run format`        | Formatea el código con Prettier                          |
+| `npm run format:check`  | Comprueba el formato sin escribir (CI)                   |
+| `npm test`              | Vitest en modo watch                                     |
+| `npm run test:run`      | Vitest una sola vez (CI)                                 |
+| `npm run test:coverage` | Tests con cobertura (v8)                                 |
+
+### Formato
+
+El formato lo aplica Prettier (`.prettierrc.json`): comillas simples, sin `;`, comas finales y líneas de hasta 120 caracteres. `prettier-plugin-tailwindcss` ordena las clases de Tailwind en `className`, así que no hace falta cuidar su orden a mano. CI ejecuta `npm run format:check` y falla si algún archivo no está formateado.
+
+`openspec/` y `.claude/` quedan fuera (`.prettierignore`), porque los generan o reescriben herramientas.
 
 ## Arquitectura
 
@@ -35,15 +43,17 @@ src/
 │       ├── lib/         # (opcional) Utilidades puras de la feature
 │       ├── mocks/       # Factories (Faker) y handlers (MSW) de la feature
 │       ├── store/       # (opcional) Estado de cliente con Zustand
-│       ├── types/       # Tipos del dominio
+│       ├── schemas/     # Esquemas de Zod (contratos) y tipos inferidos de ellos
 │       └── index.ts     # API pública: lo único que importa el resto de la app
 ├── shared/              # Código reutilizable sin dominio
-│   ├── api/             # Cliente HTTP (httpGet, httpPost, apiUrl, HttpError)
-│   └── config/          # Variables de entorno tipadas
+│   ├── api/             # Cliente HTTP validado (httpGet, httpPost, apiUrl, HttpError, ContractError)
+│   ├── config/          # Variables de entorno validadas (env, parseEnv)
+│   └── ui/              # Componentes de interfaz sin dominio (Button, TextField)
 ├── mocks/               # Ensamblado de MSW
 │   ├── handlers.ts      # Agrega los handlers de todas las features
 │   ├── transport.ts     # mockTransport: mocks en el navegador (desarrollo y demo)
 │   └── server.ts        # setupServer (tests en Node)
+├── index.css            # Tailwind, tokens del tema y estilos base
 ├── test/
 │   ├── setup.ts         # jest-dom, cleanup y ciclo de vida del server MSW
 │   └── test-utils.tsx   # renderWithProviders (QueryClient + MemoryRouter, + userEvent) y re-exports de RTL
@@ -57,9 +67,41 @@ src/
 - Alias `@/` → `src/` (configurado en `vite.config.ts` y `tsconfig.app.json`).
 - Los tests van junto al código que prueban (`Foo.tsx` → `Foo.test.tsx`).
 
+## Estilos
+
+Los estilos se escriben con utilidades de **Tailwind CSS v4** directamente en `className`. No hay hojas de estilo por componente ni clases globales: la configuración vive en `src/index.css` (`@import 'tailwindcss'` + `@theme`), sin `tailwind.config.js`.
+
+### Tokens del tema
+
+Usa siempre los tokens semánticos en lugar de colores de la paleta de Tailwind (`bg-card`, no `bg-zinc-900`):
+
+| Token        | Ejemplo de uso                            | Oscuro    | Claro     |
+| ------------ | ----------------------------------------- | --------- | --------- |
+| `background` | `bg-background` (página, inputs)          | `#121212` | `#ffffff` |
+| `foreground` | `text-foreground`, `border-foreground/30` | `#f1f1f1` | `#1a1a1a` |
+| `card`       | `bg-card` (tarjetas, login, avisos)       | `#1f1f22` | `#f4f4f5` |
+| `accent`     | `bg-accent`, `outline-accent`             | `#dd6e2f` | `#dd6e2f` |
+| `danger`     | `border-danger`, `bg-danger/12`           | `#ef5350` | `#c62828` |
+
+Cada token es una variable CSS (`--bg`, `--fg`, `--card`, `--accent`, `--danger`) con un valor en `:root` (claro) y otro en `.dark` (oscuro).
+
+### Tema oscuro por defecto
+
+La app es **siempre oscura**, sea cual sea la preferencia del sistema. `index.html` pone `class="dark"` y `color-scheme: dark` en `<html>`, así que el primer pintado ya es oscuro, antes de que se ejecute JavaScript. El manifest de la PWA usa `#121212` como `background_color` y `theme_color`.
+
+- Como los tokens cambian solos con la clase `.dark`, los componentes **no necesitan `dark:`** para los colores base.
+- La variante `dark:` funciona por clase (`@custom-variant dark` en `index.css`), no por `prefers-color-scheme`. Úsala solo para excepciones puntuales.
+- Los valores del tema claro están definidos pero no se usan. Un selector de tema futuro solo tendrá que poner o quitar `.dark` en `<html>` (y recordar la preferencia).
+
+### Componentes compartidos
+
+Cuando unas mismas clases se repiten en dos sitios, se extraen a un componente en `src/shared/ui/` en vez de crear una clase CSS con `@apply`. Por ahora existen `Button` (variantes `primary` y `secondary`; por defecto `type="button"`) y `TextField` (ver [Formularios](#formularios)).
+
 ## Mocks
 
-- **Faker**: cada entidad tiene una factory `buildX(overrides)` en `features/<feature>/mocks/`.
+- **Faker**: cada entidad tiene una factory `buildX(overrides)` en `features/<feature>/mocks/`. Devuelve
+  `XSchema.parse(...)`, así que un mock no puede salirse del contrato y un override inválido falla en el acto.
+  Los tests que necesitan datos inválidos los escriben a mano a propósito.
 - **MSW**: los handlers por defecto viven en la feature y se registran en `src/mocks/handlers.ts`.
   - En tests, `server` se arranca en `src/test/setup.ts` con `onUnhandledFrame: 'error'`, así que cualquier petición no mockeada hace fallar el test.
   - Para un caso concreto, sobrescribe con `server.use(...)` (se resetea tras cada test):
@@ -73,7 +115,7 @@ src/
   contra los mismos handlers, y si ninguno coincide la envía a la red. Así el único service worker es el de la PWA.
   - Solo se simulan las peticiones que pasan por `src/shared/api/httpClient.ts`.
   - Las peticiones simuladas no aparecen en la pestaña Network; en desarrollo se registran en la consola
-    como `[mock] GET <url> -> <status>` (nivel *Verbose*/`debug`).
+    como `[mock] GET <url> -> <status>` (nivel _Verbose_/`debug`).
   - El build de producción (`npm run build`) no incluye MSW, Faker ni los handlers.
 
 ### Estado y peticiones
@@ -88,9 +130,59 @@ src/
 ### Añadir una nueva feature
 
 1. Crea `src/features/<nombre>/` con la estructura anterior.
-2. Añade su factory y sus handlers en `mocks/`.
-3. Registra los handlers en `src/mocks/handlers.ts`.
-4. Exporta lo necesario desde `index.ts`.
+2. Define sus contratos en `schemas/` y pásalos a `httpGet`/`httpPost` desde `api/`.
+3. Añade su factory y sus handlers en `mocks/`.
+4. Registra los handlers en `src/mocks/handlers.ts`.
+5. Exporta lo necesario desde `index.ts`.
+
+## Contratos (Zod)
+
+Los esquemas de Zod son la **única fuente de verdad** de los datos: viven en `features/<feature>/schemas/` y los tipos se infieren de ellos (`type Beyblade = z.infer<typeof BeybladeSchema>`). No hay interfaces escritas a mano para datos que vienen de fuera.
+
+Ningún dato externo entra en la app sin pasar por un esquema. El rigor depende de la dirección del dato:
+
+| Dato                     | Constructor                  | Por qué                                                      |
+| ------------------------ | ---------------------------- | ------------------------------------------------------------ |
+| Respuestas de la API     | `z.object` (descarta extras) | Que el backend añada un campo no debe romper la app          |
+| Cuerpos que enviamos     | `z.strictObject`             | Un campo de más es un bug nuestro                            |
+| Configuración `VITE_*`   | `z.strictObject`             | Detecta erratas en el nombre de las variables                |
+| Sesión en `localStorage` | `z.object`                   | La escribe la propia app; tolera campos de versiones futuras |
+| Payload del JWT          | `z.object`                   | Los JWT reales traen claims extra (`iss`, `aud`…)            |
+
+- **Cliente HTTP**: `httpGet(path, responseSchema)` y `httpPost(path, body, { request, response })` devuelven datos ya validados y tipados por el esquema. `httpPost` valida el cuerpo antes de enviarlo: si no cumple, no hay petición.
+- **`ContractError`**: se lanza cuando lo enviado o lo recibido no cumple el contrato (con `method`, `path`, `direction` e `issues`). Es distinto de `HttpError`, así que las vistas lo tratan como su error inesperado. En desarrollo se registra en la consola con el campo exacto que falla.
+- **Configuración**: `src/shared/config/env.ts` valida las variables `VITE_*` al arrancar. Un valor no permitido o una variable desconocida impiden arrancar con un error que nombra la variable.
+- **Sesión guardada**: si lo guardado en `localStorage` no cumple `SessionSchema`, se descarta y se borra, y el usuario queda sin sesión.
+
+## Formularios
+
+Todos los formularios siguen el mismo patrón: **esquema de Zod + `useForm` (React Hook Form) + `zodResolver` + `TextField`**. Ejemplo real (`features/auth/components/LoginForm.tsx`):
+
+```tsx
+const {
+  register,
+  handleSubmit,
+  formState: { errors },
+} = useForm<LoginFormValues, unknown, LoginFormOutput>({
+  resolver: zodResolver(LoginFormSchema),
+  mode: 'onTouched',
+  defaultValues: { email: '', password: '' },
+})
+
+<form noValidate onSubmit={handleSubmit((credentials) => submit(credentials, { onSuccess }))}>
+  <TextField label="Correo electrónico" type="email" autoComplete="email" error={errors.email?.message} {...register('email')} />
+  ...
+</form>
+```
+
+- **Esquema del formulario** en `features/<feature>/schemas/<nombre>Form.schema.ts`, con los mensajes en español y las transformaciones de entrada (p. ej. `trim` del correo). Los valores del formulario se tipan con `z.input` y lo que entrega `handleSubmit` con `z.output`, ya transformado.
+- **Separado del contrato de la API**: el esquema del formulario no es el de la petición (`LoginRequestSchema`). Un test de tipos (`expectTypeOf<LoginFormOutput>().toEqualTypeOf<LoginRequest>()`) impide que se desvíen, y `httpPost` sigue validando el cuerpo al enviarlo.
+- **`mode: 'onTouched'`**: el error de un campo aparece al salir de él o al enviar, nunca mientras se escribe por primera vez. Una vez visible, se revalida al escribir y desaparece en cuanto el valor es válido.
+- **Foco**: al enviar con errores, el foco va al primer campo inválido. React Hook Form sigue el orden de `register`, así que **registra los campos en el orden visual**.
+- **`noValidate`** en el `<form>` desactiva los avisos nativos del navegador. Los inputs conservan su `type` y `autoComplete` (teclado móvil y autocompletado).
+- **`TextField`** (`src/shared/ui/`) pinta la etiqueta, el input y el error. Con error marca el campo con `aria-invalid` y lo asocia al mensaje con `aria-describedby`. Recibe la `ref` de `register` como una prop más (React 19); sin ella no funciona el foco.
+- El envío, el estado pendiente y los errores de la API no son de React Hook Form: siguen en el hook de la feature (p. ej. `useLogin`).
+- En los tests, la validación es asíncrona: espera los mensajes con `findBy*`.
 
 ## Autenticación
 
@@ -125,13 +217,13 @@ Configurada con [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) en `vite.
 
 ### Iconos (`public/`)
 
-| Archivo | Uso |
-| --- | --- |
-| `logo.png` | Logo LVB con fondo transparente, origen del resto |
-| `pwa-64x64.png`, `pwa-192x192.png`, `pwa-512x512.png` | Iconos `any` del manifest (logo sobre círculo blanco) |
-| `maskable-icon-512x512.png` | Icono `maskable` (fondo blanco, logo dentro de la zona segura del 80 %) |
-| `apple-touch-icon-180x180.png` | Icono de iOS |
-| `favicon.ico` | Favicon (16, 32, 48 y 64 px) |
+| Archivo                                               | Uso                                                                     |
+| ----------------------------------------------------- | ----------------------------------------------------------------------- |
+| `logo.png`                                            | Logo LVB con fondo transparente, origen del resto                       |
+| `pwa-64x64.png`, `pwa-192x192.png`, `pwa-512x512.png` | Iconos `any` del manifest (logo sobre círculo blanco)                   |
+| `maskable-icon-512x512.png`                           | Icono `maskable` (fondo blanco, logo dentro de la zona segura del 80 %) |
+| `apple-touch-icon-180x180.png`                        | Icono de iOS                                                            |
+| `favicon.ico`                                         | Favicon (16, 32, 48 y 64 px)                                            |
 
 Para cambiar el logo, regenera estos archivos a partir de un `logo.png` cuadrado nuevo, con los mismos
 nombres y tamaños; el icono maskable debe dejar el logo dentro de un círculo del 80 % del lado.
@@ -140,7 +232,7 @@ Puedes comprobarlo en <https://maskable.app/>.
 ## Demo en GitHub Pages
 
 El workflow `.github/workflows/deploy-demo.yml` publica en cada push a `master` (o manualmente
-desde *Actions → Run workflow*) un build con `--mode demo`:
+desde _Actions → Run workflow_) un build con `--mode demo`:
 
 - `.env.demo` activa los mocks, así que la API se simula en el navegador con datos de Faker.
 - `base` es `/beyblade-valencia/`.
@@ -151,7 +243,7 @@ desde *Actions → Run workflow*) un build con `--mode demo`:
 URL: https://charliecobo.github.io/beyblade-valencia/
 
 El workflow publica `dist/` en la rama `gh-pages`. Si la web no aparece, revisa
-*Settings → Pages → Source: Deploy from a branch → `gh-pages` / `(root)`*.
+_Settings → Pages → Source: Deploy from a branch → `gh-pages` / `(root)`_.
 Para retirar la demo, borra el workflow, la rama `gh-pages` y desactiva Pages.
 
 ## Nuevas features con OpenSpec

@@ -1,20 +1,9 @@
-import type { TokenPayload } from '../types/auth.types'
+import { TokenPayloadSchema, type TokenPayload } from '../schemas/token.schema'
 
 function base64UrlDecode(value: string): string {
   const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
   const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='))
   return new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)))
-}
-
-function isTokenPayload(value: unknown): value is TokenPayload {
-  if (typeof value !== 'object' || value === null) return false
-  const payload = value as Record<string, unknown>
-  return (
-    typeof payload.sub === 'string' &&
-    typeof payload.email === 'string' &&
-    typeof payload.iat === 'number' &&
-    typeof payload.exp === 'number'
-  )
 }
 
 /**
@@ -32,6 +21,7 @@ export function decodeTokenPayload(token: string): TokenPayload {
     throw new Error('Token con payload ilegible')
   }
 
-  if (!isTokenPayload(payload)) throw new Error('Token sin los campos esperados')
-  return payload
+  const result = TokenPayloadSchema.safeParse(payload)
+  if (!result.success) throw new Error('Token sin los campos esperados')
+  return result.data
 }

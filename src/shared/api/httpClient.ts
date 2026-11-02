@@ -1,4 +1,6 @@
+import type { z } from 'zod'
 import { env } from '@/shared/config/env'
+import { ContractError } from './ContractError'
 
 export class HttpError extends Error {
   readonly status: number
@@ -34,7 +36,24 @@ export function apiUrl(path: string): string {
   return new URL(`${base}${path}`, window.location.origin).toString()
 }
 
-async function request<T>(method: string, path: string, init?: RequestInit): Promise<T> {
+/** Esquemas de un POST: el del cuerpo que se envía y el de la respuesta. */
+export interface PostSchemas<TRequest extends z.ZodType, TResponse extends z.ZodType> {
+  request: TRequest
+  response: TResponse
+}
+
+function reportContractError(error: ContractError): ContractError {
+  // Sin backend real, este log es la pista principal de qué campo no cumple el contrato.
+  if (import.meta.env.DEV && import.meta.env.MODE !== 'test') console.error(error)
+  return error
+}
+
+async function request<S extends z.ZodType>(
+  method: string,
+  path: string,
+  responseSchema: S,
+  init?: RequestInit,
+): Promise<z.output<S>> {
   const httpRequest = new Request(apiUrl(path), {
     ...init,
     method,
@@ -46,18 +65,56 @@ async function request<T>(method: string, path: string, init?: RequestInit): Pro
     throw new HttpError(response.status, `${method} ${path} falló con ${response.status}`)
   }
 
-  return (await response.json()) as T
+  let json: unknown
+  try {
+    json = await response.json()
+  } catch {
+    throw reportContractError(
+      new ContractError({
+        method,
+        path,
+        direction: 'response',
+        issues: [{ code: 'custom', path: [], message: 'La respuesta no es JSON válido', input: undefined }],
+      }),
+    )
+  }
+
+  const result = responseSchema.safeParse(json)
+  if (!result.success) {
+    throw reportContractError(new ContractError({ method, path, direction: 'response', issues: result.error.issues }))
+  }
+  return result.data
 }
 
-export function httpGet<T>(path: string, init?: RequestInit): Promise<T> {
-  return request<T>('GET', path, init)
+/** GET que devuelve la respuesta ya validada con `responseSchema`. */
+export function httpGet<S extends z.ZodType>(
+  path: string,
+  responseSchema: S,
+  init?: RequestInit,
+): Promise<z.output<S>> {
+  return request('GET', path, responseSchema, init)
 }
 
-/** Envía `body` serializado como JSON. */
-export function httpPost<TBody, TResponse>(path: string, body: TBody, init?: RequestInit): Promise<TResponse> {
-  return request<TResponse>('POST', path, {
+/**
+ * POST que valida `body` con `schemas.request` antes de enviarlo (si no cumple, no hay petición)
+ * y devuelve la respuesta validada con `schemas.response`. Se envía la salida del esquema, serializada como JSON.
+ */
+export async function httpPost<TRequest extends z.ZodType, TResponse extends z.ZodType>(
+  path: string,
+  body: z.input<TRequest>,
+  schemas: PostSchemas<TRequest, TResponse>,
+  init?: RequestInit,
+): Promise<z.output<TResponse>> {
+  const parsedBody = schemas.request.safeParse(body)
+  if (!parsedBody.success) {
+    throw reportContractError(
+      new ContractError({ method: 'POST', path, direction: 'request', issues: parsedBody.error.issues }),
+    )
+  }
+
+  return request('POST', path, schemas.response, {
     ...init,
-    body: JSON.stringify(body),
+    body: JSON.stringify(parsedBody.data),
     headers: { 'Content-Type': 'application/json', ...init?.headers },
   })
 }

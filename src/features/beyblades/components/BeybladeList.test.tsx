@@ -40,4 +40,37 @@ describe('BeybladeList', () => {
 
     expect(await screen.findAllByRole('article')).toHaveLength(6)
   })
+
+  describe('contrato de la API', () => {
+    // Datos escritos a mano a propósito: la factory no permite construir beyblades inválidos.
+    const valid = { id: 'b-1', name: 'Pegasus', type: 'attack', blader: 'Gingka', wins: 3 }
+
+    it('muestra el error si un elemento tiene un campo de tipo inesperado', async () => {
+      server.use(
+        http.get(apiUrl(BEYBLADES_PATH), () => HttpResponse.json([valid, { ...valid, id: 'b-2', wins: 'diez' }])),
+      )
+
+      renderWithProviders(<BeybladeList />)
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron cargar los beyblades.')
+      expect(screen.queryByRole('article')).not.toBeInTheDocument()
+    })
+
+    it('muestra el error si a un elemento le falta un campo', async () => {
+      const { name: _name, ...withoutName } = valid
+      server.use(http.get(apiUrl(BEYBLADES_PATH), () => HttpResponse.json([withoutName])))
+
+      renderWithProviders(<BeybladeList />)
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron cargar los beyblades.')
+    })
+
+    it('muestra el listado aunque la API añada campos nuevos', async () => {
+      server.use(http.get(apiUrl(BEYBLADES_PATH), () => HttpResponse.json([{ ...valid, image: 'pegasus.png' }])))
+
+      renderWithProviders(<BeybladeList />)
+
+      expect(await screen.findByRole('article', { name: 'Pegasus' })).toBeInTheDocument()
+    })
+  })
 })

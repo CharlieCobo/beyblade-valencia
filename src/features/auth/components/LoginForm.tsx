@@ -1,6 +1,10 @@
-import type { FormEvent } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
 import { HttpError } from '@/shared/api/httpClient'
+import { Button } from '@/shared/ui/Button'
+import { TextField } from '@/shared/ui/TextField'
 import { useLogin } from '../hooks/useLogin'
+import { LoginFormSchema, type LoginFormOutput, type LoginFormValues } from '../schemas/loginForm.schema'
 
 interface LoginFormProps {
   /** Se llama tras guardar la sesión. */
@@ -14,12 +18,16 @@ function errorMessage(error: Error): string {
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const { submit, isOffline, isPending, error } = useLogin()
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const data = new FormData(event.currentTarget)
-    submit({ email: String(data.get('email')), password: String(data.get('password')) }, { onSuccess })
-  }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues, unknown, LoginFormOutput>({
+    resolver: zodResolver(LoginFormSchema),
+    // Error al salir del campo (o al enviar) y, a partir de ahí, se revalida al escribir.
+    mode: 'onTouched',
+    defaultValues: { email: '', password: '' },
+  })
 
   const message = isOffline
     ? 'Sin conexión. Revisa tu conexión e inténtalo de nuevo.'
@@ -28,26 +36,37 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       : null
 
   return (
-    <form className="login-form" aria-label="Iniciar sesión" onSubmit={handleSubmit}>
-      <label className="field">
-        <span>Correo electrónico</span>
-        <input name="email" type="email" autoComplete="email" required />
-      </label>
-
-      <label className="field">
-        <span>Contraseña</span>
-        <input name="password" type="password" autoComplete="current-password" required />
-      </label>
+    <form
+      className="grid gap-4"
+      aria-label="Iniciar sesión"
+      noValidate
+      onSubmit={handleSubmit((credentials) => submit(credentials, { onSuccess }))}
+    >
+      {/* Se registran en el orden visual: al enviar con errores, el foco va al primero inválido. */}
+      <TextField
+        label="Correo electrónico"
+        type="email"
+        autoComplete="email"
+        error={errors.email?.message}
+        {...register('email')}
+      />
+      <TextField
+        label="Contraseña"
+        type="password"
+        autoComplete="current-password"
+        error={errors.password?.message}
+        {...register('password')}
+      />
 
       {message && (
-        <p role="alert" className="form-error">
+        <p role="alert" className="m-0 rounded-md border-l-4 border-danger bg-danger/12 px-3 py-2">
           {message}
         </p>
       )}
 
-      <button type="submit" className="button button--primary" disabled={isPending}>
+      <Button type="submit" variant="primary" disabled={isPending}>
         {isPending ? 'Iniciando sesión…' : 'Iniciar sesión'}
-      </button>
+      </Button>
     </form>
   )
 }

@@ -2,7 +2,7 @@ import { onlineManager, useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { login } from '../api/auth.api'
 import { useAuthStore } from '../store/auth.store'
-import type { LoginCredentials, LoginResponse } from '../types/auth.types'
+import type { LoginRequest, LoginResponse } from '../schemas/auth.schema'
 
 interface SubmitOptions {
   onSuccess?: () => void
@@ -12,12 +12,12 @@ export function useLogin() {
   const setSession = useAuthStore((state) => state.setSession)
   const [isOffline, setIsOffline] = useState(false)
 
-  const mutation = useMutation<LoginResponse, Error, LoginCredentials>({
+  const mutation = useMutation<LoginResponse, Error, LoginRequest>({
     mutationFn: login,
     onSuccess: ({ accessToken }) => setSession(accessToken),
   })
 
-  function submit(credentials: LoginCredentials, options?: SubmitOptions) {
+  function submit(credentials: LoginRequest, options?: SubmitOptions) {
     // Sin conexión no se llama a `mutate`: una mutación en pausa se reanudaría sola
     // al volver la red e iniciaría sesión sin que el usuario lo pida.
     if (!onlineManager.isOnline()) {

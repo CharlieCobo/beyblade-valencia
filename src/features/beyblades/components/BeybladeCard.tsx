@@ -1,4 +1,4 @@
-import type { Beyblade } from '../types/beyblade.types'
+import type { Beyblade } from '../schemas/beyblade.schema'
 
 interface Props {
   beyblade: Beyblade
@@ -6,13 +6,15 @@ interface Props {
 
 export function BeybladeCard({ beyblade }: Props) {
   return (
-    <article className="card" aria-label={beyblade.name}>
-      <h3>{beyblade.name}</h3>
-      <p>
-        <span className="badge">{beyblade.type}</span>
+    <article className="rounded-xl bg-card p-4" aria-label={beyblade.name}>
+      <h3 className="mt-0 mb-[1em] text-[1.17em] font-bold capitalize">{beyblade.name}</h3>
+      <p className="my-4">
+        <span className="rounded-full bg-accent px-[0.6rem] py-[0.15rem] text-[0.8rem] text-white uppercase">
+          {beyblade.type}
+        </span>
       </p>
-      <p>Blader: {beyblade.blader}</p>
-      <p>Victorias: {beyblade.wins}</p>
+      <p className="my-4">Blader: {beyblade.blader}</p>
+      <p className="my-4">Victorias: {beyblade.wins}</p>
     </article>
   )
 }

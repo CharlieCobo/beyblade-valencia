@@ -6,17 +6,24 @@ context: |
   Keep OpenSpec structural headings and SHALL/MUST keywords in English.
 
   Proyecto: Beyblade Valencia (SPA de frontend, sin backend propio todavía).
-  Stack: React 19, Vite 8, TypeScript 7, Vitest 5, Testing Library, MSW 3, Faker, oxlint.
+  Stack: React 19, Vite 8, TypeScript 7, Zod 4, React Hook Form 7, Tailwind CSS 4, Vitest 5, Testing Library, MSW 3, Faker, oxlint, Prettier.
+  Estilos: utilidades de Tailwind con los tokens del tema (background, foreground, card, accent, danger);
+  tema oscuro por defecto (.dark en <html>); lo repetido se extrae a src/shared/ui/.
+  Formularios: esquema de Zod + useForm (React Hook Form) + zodResolver + TextField, mode 'onTouched'.
 
   Arquitectura por features (ver README.md):
   - Cada feature vive en src/features/<feature>/ con api/, components/, hooks/,
-    mocks/, types/ e index.ts como única API pública.
+    mocks/, schemas/ e index.ts como única API pública.
   - Una feature no importa de otra salvo por su index.ts; src/shared/ no importa de features/.
   - Alias de importación @/ -> src/.
-  - Las llamadas HTTP usan httpGet/apiUrl de src/shared/api/httpClient.ts.
+  - Las llamadas HTTP usan httpGet/httpPost/apiUrl de src/shared/api/httpClient.ts, siempre con el esquema
+    de Zod de la respuesta (y del cuerpo en httpPost).
+  - Contratos: esquemas de Zod en features/<feature>/schemas/ como fuente única de verdad; los tipos se
+    infieren con z.infer. Respuestas con z.object; cuerpos enviados y configuración con z.strictObject.
 
   Mocks y tests:
-  - Cada entidad tiene una factory buildX(overrides) con Faker en features/<feature>/mocks/.
+  - Cada entidad tiene una factory buildX(overrides) con Faker en features/<feature>/mocks/, que devuelve
+    datos validados por su esquema.
   - Cada endpoint tiene un handler de MSW en features/<feature>/mocks/ registrado en src/mocks/handlers.ts.
   - Tests colocados junto al código (*.test.ts[x]); se renderiza con renderWithProviders de @/test/test-utils.
   - MSW falla ante peticiones no mockeadas; los casos específicos usan server.use(...).

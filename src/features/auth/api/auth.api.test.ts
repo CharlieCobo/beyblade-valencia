@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { server } from '@/mocks/server'
+import { apiUrl } from '@/shared/api/httpClient'
 import { buildAuthUser, TEST_USER } from '../mocks/authUser.factory'
-import { login } from './auth.api'
+import { login, LOGIN_PATH } from './auth.api'
 
 function decodePayload(token: string) {
   const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
@@ -8,6 +10,22 @@ function decodePayload(token: string) {
 }
 
 describe('login', () => {
+  afterEach(() => server.events.removeAllListeners())
+
+  it('envía en el cuerpo solo el correo y la contraseña', async () => {
+    const bodies: unknown[] = []
+    server.events.on('request:start', async ({ request }) => {
+      if (request.url === apiUrl(LOGIN_PATH)) bodies.push(await request.clone().json())
+    })
+    const credentials = { email: TEST_USER.email, password: TEST_USER.password, remember: true }
+
+    // Un campo de más (p. ej. de un objeto de formulario) no llega a la API: la petición ni se envía.
+    await expect(login(credentials)).rejects.toMatchObject({ name: 'ContractError', direction: 'request' })
+    await login({ email: TEST_USER.email, password: TEST_USER.password })
+
+    expect(bodies).toEqual([{ email: TEST_USER.email, password: TEST_USER.password }])
+  })
+
   it('devuelve un token del usuario de prueba válido durante una hora', async () => {
     const { accessToken } = await login({ email: TEST_USER.email, password: TEST_USER.password })
 
